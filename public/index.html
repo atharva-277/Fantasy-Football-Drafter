@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FF Draft Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="logo">FF<span class="logo-accent">Draft</span></span>
+        <span class="draft-label">Manual Mode</span>
+      </div>
+      <div class="topbar-center">
+        <div class="turn-indicator">
+          <span class="turn-label">PICK</span>
+          <span class="turn-number" id="currentPick">1</span>
+          <span class="turn-label">OF</span>
+          <span class="turn-number" id="totalPicks">—</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="status-dot" id="statusDot"></div>
+        <span class="status-text" id="statusText">Connecting...</span>
+      </div>
+    </header>
+
+    <!-- Setup Overlay -->
+    <div class="setup-overlay" id="setupOverlay">
+      <div class="setup-card">
+        <h2 class="setup-title">Draft Setup</h2>
+        <p class="setup-sub">Configure your league before the draft begins.</p>
+
+        <div class="setup-grid">
+          <div class="field-group">
+            <label for="teamCount">Number of Teams</label>
+            <input type="number" id="teamCount" value="12" min="4" max="20" />
+          </div>
+          <div class="field-group">
+            <label for="yourPick">Your Draft Position</label>
+            <input type="number" id="yourPick" value="1" min="1" max="20" />
+          </div>
+          <div class="field-group">
+            <label for="scoringFormat">Scoring Format</label>
+            <select id="scoringFormat">
+              <option value="ppr">PPR</option>
+              <option value="half">Half PPR</option>
+              <option value="standard">Standard</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Total Rounds</label>
+            <div class="computed-rounds" id="computedRounds">12</div>
+          </div>
+        </div>
+
+        <p class="setup-sub-label">Roster Slots</p>
+        <div class="setup-grid roster-config-grid">
+          <div class="field-group">
+            <label for="slotQB">QB</label>
+            <input type="number" id="slotQB" value="1" min="0" max="4" />
+          </div>
+          <div class="field-group">
+            <label for="slotRB">RB</label>
+            <input type="number" id="slotRB" value="2" min="0" max="6" />
+          </div>
+          <div class="field-group">
+            <label for="slotWR">WR</label>
+            <input type="number" id="slotWR" value="2" min="0" max="6" />
+          </div>
+          <div class="field-group">
+            <label for="slotTE">TE</label>
+            <input type="number" id="slotTE" value="1" min="0" max="4" />
+          </div>
+          <div class="field-group">
+            <label for="slotFLEX">FLEX</label>
+            <input type="number" id="slotFLEX" value="1" min="0" max="4" />
+          </div>
+          <div class="field-group">
+            <label for="slotK">K</label>
+            <input type="number" id="slotK" value="1" min="0" max="2" />
+          </div>
+          <div class="field-group">
+            <label for="slotDEF">DEF</label>
+            <input type="number" id="slotDEF" value="1" min="0" max="2" />
+          </div>
+          <div class="field-group">
+            <label for="slotBENCH">Bench</label>
+            <input type="number" id="slotBENCH" value="3" min="0" max="10" />
+          </div>
+        </div>
+
+        <button class="btn-primary" id="startDraftBtn">Start Draft</button>
+      </div>
+    </div>
+
+    <!-- Main Draft UI -->
+    <main class="draft-layout" id="draftLayout">
+      <!-- Left Panel: Suggestions -->
+      <section class="panel suggestions-panel" id="suggestionsPanel">
+        <div class="panel-header">
+          <span class="panel-title">TOP PICKS</span>
+          <div class="panel-header-right">
+            <span class="panel-badge" id="yourPickBadge">Your pick: #—</span>
+          </div>
+        </div>
+
+        <!-- Next picks display -->
+        <div class="next-picks-row" id="nextPicksDisplay"></div>
+
+        <div class="your-turn-banner" id="yourTurnBanner">
+          ⚡ YOUR TURN — Pick now
+        </div>
+
+        <!-- Search bar -->
+        <div class="search-area">
+          <input
+            type="text"
+            id="playerSearch"
+            class="player-search"
+            placeholder="🔍  Search players..."
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Suggestions / Search Results -->
+        <div class="suggestions-list" id="suggestionsList">
+          <div class="empty-state">Waiting for draft to begin...</div>
+        </div>
+
+        <!-- Log Pick Footer -->
+        <div class="pick-input-area">
+          <div class="pick-input-row">
+            <select id="teamSelect" class="team-select-wide"></select>
+            <button class="btn-primary btn-log" id="logPickBtn">
+              Log Pick
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Draft Board -->
+      <section class="panel board-panel">
+        <div class="panel-header">
+          <span class="panel-title">DRAFT BOARD</span>
+          <span class="panel-badge" id="pickCount">0 picks made</span>
+        </div>
+        <div class="roster-strip" id="rosterStrip"></div>
+        <div class="picks-log" id="picksList">
+          <div class="empty-state">No picks yet.</div>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
