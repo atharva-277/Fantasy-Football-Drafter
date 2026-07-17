@@ -8,6 +8,11 @@ const RANKINGS_FILES = {
   standard: "rankings-standard.csv",
 };
 
+function normalizePosition(pos) {
+  // differnce between sites: sleeper uses DEF, fantasyPros uses DST. normalized to DEF
+  return pos === "DST" ? "DEF" : pos;
+}
+
 function parseCSV(raw) {
   const lines = raw.trim().split("\n");
 
@@ -32,7 +37,7 @@ function parseCSV(raw) {
       tier: parseInt(row["tiers"]) || 0,
       name: row["player name"] || "",
       team: row["team"] || "",
-      position: (row["pos"] || "").replace(/[0-9]/g, ""), // strip numbers
+      position: normalizePosition((row["pos"] || "").replace(/[0-9]/g, "")),
       byeWeek: parseInt(row["bye week"]) || 0,
       sosRating: row["sos season"] || "",
       ecrVsAdp: parseInt(row["ecr vs. adp"]) || 0,

@@ -5,6 +5,7 @@ const {
   initEngine,
   getSuggestions,
   searchPlayers,
+  getTopAvailable,
 } = require("./engine/suggestionEngine");
 const { loadRankings } = require("./data/rankingsLoader");
 
@@ -79,6 +80,14 @@ app.get("/api/draft/search", (req, res) => {
   try {
     const results = searchPlayers(req.query.q || "");
     res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/draft/top-available", (req, res) => {
+  try {
+    res.json({ players: getTopAvailable() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

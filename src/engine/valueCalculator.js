@@ -2,11 +2,11 @@ const WEIGHTS = {
   rankBase: 500,
   tierDrop: 25,
   rosterNeed: 5,
-  rosterSurplus: -20, // penalty once a position is genuinely full (see FLEX logic below)
+  rosterSurplus: -20,
   boardValue: 2,
-  byeWeekBase: 6, // penalty per rostered player sharing this bye week
-  byeWeekStack: 10, // extra flat penalty once you already have 2+ sharing this bye
-  byeWeekSamePosition: 12, // extra penalty per rostered player at the SAME position sharing this bye
+  byeWeekBase: 6,
+  byeWeekStack: 10,
+  byeWeekSamePosition: 12,
   sosBonuses: {
     5: 4,
     4: 2,
@@ -18,6 +18,7 @@ const WEIGHTS = {
 
 const DEFAULT_POSITION_NEEDS = { QB: 1, RB: 2, WR: 2, TE: 1, K: 1, DEF: 1 };
 const FLEX_ELIGIBLE = ["RB", "WR", "TE"];
+const BENCH_SWING_ELIGIBLE = ["RB", "WR"];
 
 function parseSosRating(sosString) {
   if (!sosString) return 3;
@@ -41,8 +42,6 @@ function getLastInTier(availablePlayers) {
   return lastInTier;
 }
 
-// How many of your FLEX slots are already effectively "used" by RB/WR/TE
-// players you drafted beyond that position's own base starter count.
 function getFlexUsage(rosterByPosition, positionNeeds) {
   let used = 0;
   FLEX_ELIGIBLE.forEach((pos) => {
@@ -65,24 +64,31 @@ function getNeededPositions(
   return needs;
 }
 
-// A position only counts as "surplus" (score penalty + suggestion suppression)
-// once its base starter count is met AND, for RB/WR/TE, there's no FLEX
-// capacity left to absorb another player there.
 function getSurplusPositions(
   rosterByPosition,
   positionNeeds = DEFAULT_POSITION_NEEDS,
   flexCapacity = 0,
+  benchSwingCapacity = 0,
 ) {
   const surplus = new Set();
-  const flexUsed = getFlexUsage(rosterByPosition, positionNeeds);
-  const flexRemaining = Math.max(0, flexCapacity - flexUsed);
+
+  const rbOverflow = Math.max(
+    0,
+    (rosterByPosition.RB?.length ?? 0) - (positionNeeds.RB ?? 0),
+  );
+  const wrOverflow = Math.max(
+    0,
+    (rosterByPosition.WR?.length ?? 0) - (positionNeeds.WR ?? 0),
+  );
+  const combinedPool = flexCapacity + benchSwingCapacity;
+  const rbWrRemaining = combinedPool - (rbOverflow + wrOverflow);
 
   Object.entries(positionNeeds).forEach(([pos, min]) => {
     const current = rosterByPosition[pos]?.length ?? 0;
-    if (current < min) return; // still a raw need, not a surplus
+    if (current < min) return;
 
-    if (FLEX_ELIGIBLE.includes(pos)) {
-      if (flexRemaining <= 0) surplus.add(pos);
+    if (BENCH_SWING_ELIGIBLE.includes(pos)) {
+      if (rbWrRemaining <= 0) surplus.add(pos);
     } else {
       surplus.add(pos);
     }
@@ -110,10 +116,8 @@ function scorePlayer(
   let score = 0;
   const reasons = [];
 
-  // 1. Rank anchor
   score += WEIGHTS.rankBase - player.rank;
 
-  // 2. Board value
   const pickDelta = currentPick - player.rank;
   if (pickDelta > 0) {
     score += pickDelta * WEIGHTS.boardValue;
@@ -123,13 +127,11 @@ function scorePlayer(
     reasons.push(`Reaching ${Math.abs(pickDelta)} picks early`);
   }
 
-  // 3. Tier drop
   if (lastInTier.has(player.name)) {
     score += WEIGHTS.tierDrop;
     reasons.push("Last in tier — quality drops after this pick");
   }
 
-  // 4. Roster need / surplus
   if (neededPositions.has(player.position)) {
     score += WEIGHTS.rosterNeed;
     reasons.push(`Your roster needs a ${player.position}`);
@@ -140,15 +142,12 @@ function scorePlayer(
     );
   }
 
-  // 5. SOS
   const sosStars = parseSosRating(player.sosRating);
   const sosBonus = WEIGHTS.sosBonuses[sosStars] ?? 0;
   score += sosBonus;
   if (sosStars >= 4) reasons.push(`Favorable schedule (${sosStars}/5 stars)`);
   if (sosStars <= 2) reasons.push(`Tough schedule (${sosStars}/5 stars)`);
 
-  // 6. Bye week conflicts — only kicks in once you already have 2+ players
-  // sharing this bye week; escalates further if they're the same position.
   const byeCount = byeWeekCounts.counts[player.byeWeek] || 0;
   if (byeCount >= 2) {
     const samePosCount =
@@ -173,6 +172,7 @@ function calculateValues(
   yourRoster = [],
   positionNeeds = DEFAULT_POSITION_NEEDS,
   flexCapacity = 0,
+  benchSwingCapacity = 0,
 ) {
   const lastInTier = getLastInTier(availablePlayers);
   const neededPositions = getNeededPositions(rosterByPosition, positionNeeds);
@@ -180,6 +180,7 @@ function calculateValues(
     rosterByPosition,
     positionNeeds,
     flexCapacity,
+    benchSwingCapacity,
   );
   const byeWeekCounts = getByeWeekCounts(yourRoster);
 
@@ -205,4 +206,5 @@ module.exports = {
   parseSosRating,
   DEFAULT_POSITION_NEEDS,
   FLEX_ELIGIBLE,
+  BENCH_SWING_ELIGIBLE,
 };

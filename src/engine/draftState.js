@@ -18,25 +18,34 @@ let state = {
   },
   currentPick: 1,
   totalPicks: 0,
-  picks: [], // { pickNumber, team, playerName, sleeperId, position, isYours }
-  yourRoster: [], // players you've drafted, in order
-  takenPlayers: new Set(), // names of all picked players for fast lookup
+  picks: [],
+  yourRoster: [],
+  takenPlayers: new Set(),
 };
 
 function initDraft(config) {
   const rosterConfig = config.rosterConfig || DEFAULT_ROSTER_CONFIG;
+  const bench = rosterConfig.BENCH || 0;
+
+  let remaining = bench;
+  const teBonus = remaining > 0 ? 1 : 0;
+  remaining -= teBonus;
+  const qbBonus = remaining > 0 ? 1 : 0;
+  remaining -= qbBonus;
+  const benchSwingCapacity = Math.max(0, remaining);
+
   const positionNeeds = {
-    QB: rosterConfig.QB,
+    QB: rosterConfig.QB + qbBonus,
     RB: rosterConfig.RB,
     WR: rosterConfig.WR,
-    TE: rosterConfig.TE,
+    TE: rosterConfig.TE + teBonus,
     K: rosterConfig.K,
     DEF: rosterConfig.DEF,
   };
 
   state.config = {
     ...config,
-    rosterConfig: { ...rosterConfig, positionNeeds },
+    rosterConfig: { ...rosterConfig, positionNeeds, benchSwingCapacity },
   };
   state.currentPick = 1;
   state.totalPicks = config.teamCount * config.totalRounds;

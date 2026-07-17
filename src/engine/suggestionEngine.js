@@ -54,8 +54,10 @@ function getFlexCapacity() {
   return getRosterConfig().FLEX ?? 0;
 }
 
-// Scores every currently-available player. Shared by suggestions + search
-// so both surfaces always agree on tier/value/reach-or-steal for a player.
+function getBenchSwingCapacity() {
+  return getRosterConfig().benchSwingCapacity ?? 0;
+}
+
 function getScoredAvailable() {
   if (!rankingDB) {
     throw new Error("Engine not initialized — call initEngine() first");
@@ -67,6 +69,7 @@ function getScoredAvailable() {
   const yourRoster = draftState.getYourRoster();
   const positionNeeds = getPositionNeeds();
   const flexCapacity = getFlexCapacity();
+  const benchSwingCapacity = getBenchSwingCapacity();
 
   return calculateValues(
     available,
@@ -75,6 +78,7 @@ function getScoredAvailable() {
     yourRoster,
     positionNeeds,
     flexCapacity,
+    benchSwingCapacity,
   );
 }
 
@@ -84,18 +88,14 @@ function getSuggestions() {
   const upcoming = draftState.getYourUpcomingPicks();
   const roster = draftState.getRosterByPosition();
   const positionNeeds = getPositionNeeds();
-  const flexCapacity = getFlexCapacity();
-
   const scored = getScoredAvailable();
-
-  // Positions that are genuinely full (starter count met, no FLEX capacity
-  // left to absorb another) get dropped from suggestions entirely — same
-  // logic the scorer uses for the surplus penalty, so this and the score
-  // never disagree with each other.
+  const flexCapacity = getFlexCapacity();
+  const benchSwingCapacity = getBenchSwingCapacity();
   const fullPositions = getSurplusPositions(
     roster,
     positionNeeds,
     flexCapacity,
+    benchSwingCapacity,
   );
 
   let pool = scored.filter((p) => !fullPositions.has(p.position));
@@ -176,4 +176,22 @@ function searchPlayers(query, limit = SEARCH_LIMIT) {
     });
 }
 
-module.exports = { initEngine, getSuggestions, searchPlayers };
+function getTopAvailable(limit = SUGGESTION_COUNT) {
+  if (!rankingDB) {
+    throw new Error("Engine not initialized — call initEngine() first");
+  }
+
+  const available = draftState.getAvailablePlayers(rankingDB);
+  const sorted = [...available].sort((a, b) => a.rank - b.rank);
+
+  return sorted.slice(0, limit).map((p) => ({
+    rank: p.rank,
+    name: p.name,
+    position: p.position,
+    team: p.team,
+    tier: p.tier,
+    byeWeek: p.byeWeek,
+  }));
+}
+
+module.exports = { initEngine, getSuggestions, searchPlayers, getTopAvailable };

@@ -1,4 +1,3 @@
-// ── State ──────────────────────────────────────────────────
 let draftConfig = {
   teamCount: 12,
   yourPick: 1,
@@ -14,12 +13,13 @@ let rosterConfig = {
   FLEX: 1,
   K: 1,
   DEF: 1,
-  BENCH: 3,
+  BENCH: 6,
 };
 
 let draftMeta = {};
-let selectedPlayer = null; // { name, position, team } — from card click or search
-let searchTimeout = null; // debounce timer for search
+let selectedPlayer = null;
+let searchTimeout = null;
+let showTopTalent = false;
 
 let ROSTER_SLOTS = buildRosterSlots(rosterConfig);
 
@@ -51,7 +51,6 @@ function updateComputedRounds() {
     buildRosterSlots(cfg).length;
 }
 
-// ── Server Check ───────────────────────────────────────────
 async function checkServer() {
   const dot = document.getElementById("statusDot");
   const text = document.getElementById("statusText");
@@ -66,7 +65,6 @@ async function checkServer() {
   }
 }
 
-// ── Setup ──────────────────────────────────────────────────
 function initSetup() {
   document
     .getElementById("startDraftBtn")
@@ -97,7 +95,11 @@ async function startDraft() {
 
   draftConfig = {
     teamCount: parseInt(document.getElementById("teamCount").value),
-    yourPick: parseInt(document.getElementById("yourPick").value),
+    yourPick:
+      parseInt(document.getElementById("yourPick").value) <=
+      parseInt(document.getElementById("teamCount").value)
+        ? parseInt(document.getElementById("yourPick").value)
+        : parseInt(document.getElementById("teamCount").value),
     totalRounds: ROSTER_SLOTS.length,
     scoringFormat: document.getElementById("scoringFormat").value,
   };
@@ -128,7 +130,6 @@ async function startDraft() {
   }
 }
 
-// ── Team Select ────────────────────────────────────────────
 function populateTeamSelect() {
   const select = document.getElementById("teamSelect");
   select.innerHTML = "";
@@ -151,20 +152,34 @@ function advanceTeamSelector(nextPick) {
   document.getElementById("teamSelect").value = team;
 }
 
-// ── Master UI Update ───────────────────────────────────────
 function updateFromServer(data) {
   draftMeta = data.meta;
-  renderSuggestions(data.suggestions);
   renderRosterStrip(data.meta.yourRoster);
   updateTurnState(data.meta);
   updatePickCount();
   updateNextPicks(data.meta.nextPicks);
   advanceTeamSelector(data.meta.currentPick);
+
+  if (data.meta.isDraftOver) {
+    renderDraftComplete();
+    return;
+  }
+
+  if (document.getElementById("playerSearch").value.trim()) return;
+
+  if (!data.meta.yourTurn && showTopTalent) {
+    fetchAndRenderTopAvailable();
+  } else {
+    renderSuggestions(data.suggestions);
+  }
 }
 
 // ── Turn State ─────────────────────────────────────────────
 function updateTurnState(meta) {
-  document.getElementById("currentPick").textContent = meta.currentPick;
+  const totalPicks = draftConfig.teamCount * draftConfig.totalRounds;
+  document.getElementById("currentPick").textContent = meta.isDraftOver
+    ? totalPicks
+    : meta.currentPick;
 
   const banner = document.getElementById("yourTurnBanner");
   const panel = document.getElementById("suggestionsPanel");
@@ -173,8 +188,11 @@ function updateTurnState(meta) {
     banner.textContent = "✅ Draft Complete";
     banner.classList.add("visible");
     panel.style.boxShadow = "";
+    disableDraftControls();
     return;
   }
+
+  enableDraftControls();
 
   if (meta.yourTurn) {
     banner.classList.add("visible");
@@ -184,6 +202,36 @@ function updateTurnState(meta) {
     banner.classList.remove("visible");
     panel.style.boxShadow = "";
   }
+}
+
+function disableDraftControls() {
+  const search = document.getElementById("playerSearch");
+  search.disabled = true;
+  search.value = "";
+  search.placeholder = "Draft complete";
+
+  document.getElementById("logPickBtn").disabled = true;
+  document.getElementById("logPickBtn").textContent = "Draft Complete";
+  document.getElementById("logPickBtn").classList.remove("has-selection");
+
+  document.getElementById("teamSelect").disabled = true;
+  document.getElementById("topTalentToggle").disabled = true;
+
+  selectedPlayer = null;
+}
+
+function enableDraftControls() {
+  document.getElementById("playerSearch").disabled = false;
+  document.getElementById("playerSearch").placeholder = "🔍  Search players...";
+  document.getElementById("logPickBtn").disabled = false;
+  document.getElementById("teamSelect").disabled = false;
+  document.getElementById("topTalentToggle").disabled = false;
+}
+
+function renderDraftComplete() {
+  const list = document.getElementById("suggestionsList");
+  list.innerHTML =
+    '<div class="empty-state">🏁 Draft complete — good luck this season!</div>';
 }
 
 // ── Next Picks Display ─────────────────────────────────────
@@ -357,6 +405,10 @@ function clearSelectedPlayer() {
 }
 
 async function fetchAndRenderSuggestions() {
+  if (!draftMeta.yourTurn && showTopTalent && !draftMeta.isDraftOver) {
+    await fetchAndRenderTopAvailable();
+    return;
+  }
   try {
     const res = await fetch("/api/draft/suggestions");
     const data = await res.json();
@@ -364,6 +416,56 @@ async function fetchAndRenderSuggestions() {
   } catch (err) {
     console.error("Failed to fetch suggestions:", err);
   }
+}
+
+async function fetchAndRenderTopAvailable() {
+  try {
+    const res = await fetch("/api/draft/top-available");
+    const data = await res.json();
+    renderTopAvailable(data.players);
+  } catch (err) {
+    console.error("Failed to fetch top available:", err);
+  }
+}
+
+function renderTopAvailable(players) {
+  const list = document.getElementById("suggestionsList");
+  list.innerHTML = "";
+
+  if (!players?.length) {
+    list.innerHTML = '<div class="empty-state">No players available.</div>';
+    return;
+  }
+
+  players.forEach((p, i) => {
+    const card = document.createElement("div");
+    let cardClass = "suggestion-card is-board-view";
+    if (selectedPlayer?.name === p.name) cardClass += " is-selected";
+
+    card.className = cardClass;
+    card.dataset.name = p.name;
+    card.dataset.position = p.position;
+    card.dataset.team = p.team;
+
+    card.innerHTML = `
+      <div class="suggestion-rank">${i + 1}</div>
+      <div class="suggestion-info">
+        <span class="suggestion-name">${p.name}
+          <span class="suggestion-team">${p.team}</span>
+        </span>
+        <span class="suggestion-reason">Tier ${p.tier} · Bye ${p.byeWeek || "—"}</span>
+      </div>
+      <div class="suggestion-meta">
+        <span class="pos-badge pos-${p.position}">${p.position}</span>
+      </div>
+    `;
+
+    card.addEventListener("click", () =>
+      selectPlayer({ name: p.name, position: p.position, team: p.team }),
+    );
+
+    list.appendChild(card);
+  });
 }
 
 // ── Log a Pick ─────────────────────────────────────────────
@@ -490,12 +592,24 @@ function renderPicksList(newPick) {
   list.insertBefore(row, list.firstChild);
 }
 
-// ── Init ───────────────────────────────────────────────────
+function initTopTalentToggle() {
+  const btn = document.getElementById("topTalentToggle");
+  btn.addEventListener("click", () => {
+    showTopTalent = !showTopTalent;
+    btn.classList.toggle("active", showTopTalent);
+    btn.textContent = showTopTalent ? "Top Talent: ON" : "Top Talent: OFF";
+
+    if (document.getElementById("playerSearch").value.trim()) return;
+    fetchAndRenderSuggestions();
+  });
+}
+
 async function init() {
   await checkServer();
   initSetup();
   initPickLogger();
   initSearch();
+  initTopTalentToggle();
 
   document.getElementById("teamSelect").addEventListener("change", () => {
     fetchAndRenderSuggestions();

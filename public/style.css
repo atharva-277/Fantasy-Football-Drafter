@@ -12,6 +12,8 @@
   --yellow: #ffd600;
   --red: #ff5252;
   --blue: #448aff;
+  --purple: #b388ff;
+  --orange: #ff9100;
 
   --font-display: "Oswald", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -409,12 +411,12 @@ body {
   color: var(--red);
 }
 .pos-K {
-  background: rgba(136, 146, 164, 0.2);
-  color: var(--text-muted);
+  background: rgba(179, 136, 255, 0.15);
+  color: var(--purple);
 }
 .pos-DEF {
-  background: rgba(136, 146, 164, 0.2);
-  color: var(--text-muted);
+  background: rgba(255, 145, 0, 0.15);
+  color: var(--orange);
 }
 
 .value-score {
@@ -757,4 +759,27 @@ body {
   font-size: 14px;
   font-weight: 600;
   padding: 9px 12px;
+}
+
+.toggle-btn.active {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-dim);
+}
+
+.suggestion-card.is-board-view .suggestion-reason {
+  color: var(--text-muted);
+}
+
+.player-search:disabled,
+.team-select-wide:disabled,
+.toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-log:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
