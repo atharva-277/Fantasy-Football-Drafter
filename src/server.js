@@ -10,7 +10,7 @@ const {
 const { loadRankings } = require("./data/rankingsLoader");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
@@ -95,4 +95,6 @@ app.get("/api/draft/top-available", (req, res) => {
   }
 });
 
-app.listen(PORT);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
