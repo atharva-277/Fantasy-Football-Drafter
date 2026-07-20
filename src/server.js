@@ -15,16 +15,20 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
 
-// ── Status ─────────────────────────────────────────────────
 app.get("/api/status", (req, res) => {
   res.json({ status: "ok", message: "FF Draft Assistant is running" });
 });
 
-// ── Start Draft ────────────────────────────────────────────
 app.post("/api/draft/start", async (req, res) => {
   try {
-    const { teamCount, yourPick, totalRounds, scoringFormat, rosterConfig } =
-      req.body;
+    const {
+      teamCount,
+      yourPick,
+      totalRounds,
+      scoringFormat,
+      rosterConfig,
+      draftType,
+    } = req.body;
 
     draftState.initDraft({
       teamCount,
@@ -32,6 +36,7 @@ app.post("/api/draft/start", async (req, res) => {
       totalRounds,
       scoringFormat,
       rosterConfig,
+      draftType,
     });
     await initEngine(scoringFormat);
 
@@ -41,7 +46,6 @@ app.post("/api/draft/start", async (req, res) => {
   }
 });
 
-// ── Log a Pick ─────────────────────────────────────────────
 app.post("/api/draft/pick", (req, res) => {
   try {
     const { playerName, team } = req.body;
@@ -66,7 +70,6 @@ app.post("/api/draft/pick", (req, res) => {
   }
 });
 
-// ── Get Suggestions ────────────────────────────────────────
 app.get("/api/draft/suggestions", (req, res) => {
   try {
     res.json(getSuggestions());
@@ -75,7 +78,6 @@ app.get("/api/draft/suggestions", (req, res) => {
   }
 });
 
-// ── Search ─────────────────────────────────────────────────
 app.get("/api/draft/search", (req, res) => {
   try {
     const results = searchPlayers(req.query.q || "");

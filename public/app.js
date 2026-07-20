@@ -3,6 +3,7 @@ let draftConfig = {
   yourPick: 1,
   totalRounds: 15,
   scoringFormat: "ppr",
+  draftType: "snake",
 };
 
 let rosterConfig = {
@@ -124,6 +125,7 @@ async function startDraft() {
         : parseInt(document.getElementById("teamCount").value),
     totalRounds: ROSTER_SLOTS.length,
     scoringFormat: document.getElementById("scoringFormat").value,
+    draftType: document.getElementById("draftType").value,
   };
 
   try {
@@ -165,12 +167,15 @@ function populateTeamSelect() {
 
 function advanceTeamSelector(nextPick) {
   if (!nextPick) return;
-  const round = Math.ceil(nextPick / draftConfig.teamCount);
   const pickInRound = ((nextPick - 1) % draftConfig.teamCount) + 1;
-  const isOddRound = round % 2 === 1;
-  const team = isOddRound
-    ? pickInRound
-    : draftConfig.teamCount - pickInRound + 1;
+  let team;
+  if (draftConfig.draftType === "linear") {
+    team = pickInRound;
+  } else {
+    const round = Math.ceil(nextPick / draftConfig.teamCount);
+    const isOddRound = round % 2 === 1;
+    team = isOddRound ? pickInRound : draftConfig.teamCount - pickInRound + 1;
+  }
   document.getElementById("teamSelect").value = team;
 }
 

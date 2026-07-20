@@ -25,6 +25,7 @@ let state = {
 
 function initDraft(config) {
   const rosterConfig = config.rosterConfig || DEFAULT_ROSTER_CONFIG;
+  const draftType = config.draftType === "linear" ? "linear" : "snake";
   const bench = rosterConfig.BENCH || 0;
 
   const teEnabled = (rosterConfig.TE || 0) > 0;
@@ -72,6 +73,7 @@ function initDraft(config) {
 
   state.config = {
     ...config,
+    draftType,
     rosterConfig: {
       ...rosterConfig,
       positionNeeds,
@@ -96,8 +98,11 @@ function getPickInRound() {
 }
 
 function getTeamPickingNow() {
-  const round = getCurrentRound();
   const pickInRound = getPickInRound();
+  if (state.config.draftType === "linear") {
+    return pickInRound;
+  }
+  const round = getCurrentRound();
   const isOddRound = round % 2 === 1;
   return isOddRound ? pickInRound : state.config.teamCount - pickInRound + 1;
 }
@@ -107,14 +112,19 @@ function isYourTurn() {
 }
 
 function getYourUpcomingPicks() {
-  const { teamCount, yourPick, totalRounds } = state.config;
+  const { teamCount, yourPick, totalRounds, draftType } = state.config;
   const upcoming = [];
 
   for (let round = 1; round <= totalRounds; round++) {
-    const isOddRound = round % 2 === 1;
-    const pickNumber = isOddRound
-      ? (round - 1) * teamCount + yourPick
-      : (round - 1) * teamCount + (teamCount - yourPick + 1);
+    let pickNumber;
+    if (draftType === "linear") {
+      pickNumber = (round - 1) * teamCount + yourPick;
+    } else {
+      const isOddRound = round % 2 === 1;
+      pickNumber = isOddRound
+        ? (round - 1) * teamCount + yourPick
+        : (round - 1) * teamCount + (teamCount - yourPick + 1);
+    }
 
     if (pickNumber >= state.currentPick) {
       upcoming.push({ round, pickNumber });
