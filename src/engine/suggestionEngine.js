@@ -3,7 +3,10 @@ const { loadRankings } = require("../data/rankingsLoader");
 const {
   calculateValues,
   getSurplusPositions,
+  getNeededPositions,
   DEFAULT_POSITION_NEEDS,
+  NO_BOARD_VALUE_POSITIONS,
+  isTierGatedOut,
 } = require("./valueCalculator");
 const draftState = require("./draftState");
 
@@ -50,6 +53,10 @@ function getPositionNeeds() {
   return getRosterConfig().positionNeeds ?? DEFAULT_POSITION_NEEDS;
 }
 
+function getStarterNeeds() {
+  return getRosterConfig().starterNeeds ?? DEFAULT_POSITION_NEEDS;
+}
+
 function getFlexCapacity() {
   return getRosterConfig().FLEX ?? 0;
 }
@@ -58,16 +65,30 @@ function getBenchSwingCapacity() {
   return getRosterConfig().benchSwingCapacity ?? 0;
 }
 
+function getEnabledPositions() {
+  const enabled = getRosterConfig().enabledPositions;
+  return new Set(
+    enabled && enabled.length ? enabled : Object.keys(DEFAULT_POSITION_NEEDS),
+  );
+}
+
+function filterEnabled(players) {
+  const enabled = getEnabledPositions();
+  return players.filter((p) => enabled.has(p.position));
+}
+
 function getScoredAvailable() {
   if (!rankingDB) {
     throw new Error("Engine not initialized — call initEngine() first");
   }
 
-  const available = draftState.getAvailablePlayers(rankingDB);
+  const available = filterEnabled(draftState.getAvailablePlayers(rankingDB));
   const roster = draftState.getRosterByPosition();
   const currentPick = draftState.getCurrentPick();
+  const totalPicks = draftState.getTotalPicks();
   const yourRoster = draftState.getYourRoster();
   const positionNeeds = getPositionNeeds();
+  const starterNeeds = getStarterNeeds();
   const flexCapacity = getFlexCapacity();
   const benchSwingCapacity = getBenchSwingCapacity();
 
@@ -79,30 +100,36 @@ function getScoredAvailable() {
     positionNeeds,
     flexCapacity,
     benchSwingCapacity,
+    totalPicks,
+    starterNeeds,
   );
 }
 
 function getSuggestions() {
   const currentPick = draftState.getCurrentPick();
+  const totalPicks = draftState.getTotalPicks();
   const yourTurn = draftState.isYourTurn();
   const upcoming = draftState.getYourUpcomingPicks();
   const roster = draftState.getRosterByPosition();
   const positionNeeds = getPositionNeeds();
-  const scored = getScoredAvailable();
+  const starterNeeds = getStarterNeeds();
   const flexCapacity = getFlexCapacity();
   const benchSwingCapacity = getBenchSwingCapacity();
+
+  const scored = getScoredAvailable();
   const fullPositions = getSurplusPositions(
     roster,
     positionNeeds,
     flexCapacity,
     benchSwingCapacity,
   );
+  const strictNeeded = getNeededPositions(roster, starterNeeds);
 
-  let pool = scored.filter((p) => !fullPositions.has(p.position));
-
-  // Safety net: if every remaining position happens to be full (deep,
-  // bench-heavy draft late on), fall back to the unfiltered list rather
-  // than showing nothing.
+  let pool = scored.filter(
+    (p) =>
+      !fullPositions.has(p.position) &&
+      !isTierGatedOut(p.position, strictNeeded, currentPick, totalPicks),
+  );
   if (pool.length === 0) pool = scored;
 
   const suggestions = pool.slice(0, SUGGESTION_COUNT).map((p, i) => ({
@@ -115,8 +142,11 @@ function getSuggestions() {
     byeWeek: p.byeWeek,
     valueScore: Math.round(p.valueScore),
     reason: p.reason,
-    isReach: currentPick < p.rank,
-    isSteal: currentPick > p.rank,
+    reasonType: p.reasonType,
+    isReach:
+      !NO_BOARD_VALUE_POSITIONS.includes(p.position) && currentPick < p.rank,
+    isSteal:
+      !NO_BOARD_VALUE_POSITIONS.includes(p.position) && currentPick > p.rank,
     picksLate: Math.max(0, currentPick - p.rank),
   }));
 
@@ -134,9 +164,6 @@ function getSuggestions() {
   };
 }
 
-// Search always shows every match regardless of roster fullness — the
-// suppression above only applies to the suggestions list, so you can still
-// look up and draft a "full" position on purpose.
 function searchPlayers(query, limit = SEARCH_LIMIT) {
   if (!rankingDB) {
     throw new Error("Engine not initialized — call initEngine() first");
@@ -153,27 +180,30 @@ function searchPlayers(query, limit = SEARCH_LIMIT) {
   const scoredMap = new Map();
   getScoredAvailable().forEach((p) => scoredMap.set(normalizeName(p.name), p));
 
-  return rankingDB
-    .filter((p) => p.name.toLowerCase().includes(q))
-    .slice(0, limit)
-    .map((p) => {
-      const taken = takenNames.has(p.name.toLowerCase());
-      const scored = scoredMap.get(normalizeName(p.name));
+  const matches = filterEnabled(
+    rankingDB.filter((p) => p.name.toLowerCase().includes(q)),
+  );
 
-      return {
-        rank: p.rank,
-        name: p.name,
-        position: p.position,
-        team: p.team,
-        tier: p.tier,
-        byeWeek: p.byeWeek,
-        taken,
-        valueScore: scored ? Math.round(scored.valueScore) : null,
-        reason: scored ? scored.reason : null,
-        isReach: scored ? currentPick < p.rank : false,
-        isSteal: scored ? currentPick > p.rank : false,
-      };
-    });
+  return matches.slice(0, limit).map((p) => {
+    const taken = takenNames.has(p.name.toLowerCase());
+    const scored = scoredMap.get(normalizeName(p.name));
+    const noBoardValue = NO_BOARD_VALUE_POSITIONS.includes(p.position);
+
+    return {
+      rank: p.rank,
+      name: p.name,
+      position: p.position,
+      team: p.team,
+      tier: p.tier,
+      byeWeek: p.byeWeek,
+      taken,
+      valueScore: scored ? Math.round(scored.valueScore) : null,
+      reason: scored ? scored.reason : null,
+      reasonType: scored ? scored.reasonType : null,
+      isReach: scored && !noBoardValue ? currentPick < p.rank : false,
+      isSteal: scored && !noBoardValue ? currentPick > p.rank : false,
+    };
+  });
 }
 
 function getTopAvailable(limit = SUGGESTION_COUNT) {
@@ -181,7 +211,7 @@ function getTopAvailable(limit = SUGGESTION_COUNT) {
     throw new Error("Engine not initialized — call initEngine() first");
   }
 
-  const available = draftState.getAvailablePlayers(rankingDB);
+  const available = filterEnabled(draftState.getAvailablePlayers(rankingDB));
   const sorted = [...available].sort((a, b) => a.rank - b.rank);
 
   return sorted.slice(0, limit).map((p) => ({

@@ -45,6 +45,28 @@ function readRosterConfigFromInputs() {
   };
 }
 
+const NAME_SUFFIXES = new Set([
+  "jr",
+  "jr.",
+  "sr",
+  "sr.",
+  "ii",
+  "iii",
+  "iv",
+  "v",
+]);
+
+function getDisplayLastName(fullName) {
+  const parts = fullName.trim().split(/\s+/);
+  while (
+    parts.length > 1 &&
+    NAME_SUFFIXES.has(parts[parts.length - 1].toLowerCase().replace(".", ""))
+  ) {
+    parts.pop();
+  }
+  return parts[parts.length - 1];
+}
+
 function updateComputedRounds() {
   const cfg = readRosterConfigFromInputs();
   document.getElementById("computedRounds").textContent =
@@ -285,8 +307,8 @@ function renderSuggestions(suggestions) {
         <span class="suggestion-name">${s.name}
           <span class="suggestion-team">${s.team}</span>
         </span>
-        <span class="suggestion-reason ${s.isReach ? "reason-reach" : s.isSteal ? "reason-steal" : ""}">
-          ${s.isReach ? "⚠️" : s.isSteal ? "🔥" : "•"} ${s.reason}
+        <span class="suggestion-reason ${s.reasonType === "warning" || s.reasonType === "reach" ? "reason-reach" : s.reasonType === "steal" ? "reason-steal" : ""}">
+          ${s.reasonType === "warning" || s.reasonType === "reach" ? "⚠️" : s.reasonType === "steal" ? "🔥" : "•"} ${s.reason}
         </span>
       </div>
       <div class="suggestion-meta">
@@ -557,7 +579,7 @@ function renderRosterStrip(roster = []) {
       <div class="roster-slot">
         <span class="roster-slot-pos">${pos}</span>
         <div class="roster-slot-player ${player ? "filled" : ""}">
-          ${player ? player.playerName.split(" ").pop() : "—"}
+          ${player ? getDisplayLastName(player.playerName) : "—"}
         </div>
       </div>
     `;

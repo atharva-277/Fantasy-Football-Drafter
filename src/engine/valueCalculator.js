@@ -1,6 +1,9 @@
 const WEIGHTS = {
   rankBase: 500,
   tierDrop: 25,
+  starterNeed: 14,
+  benchDepth: 2,
+  positionSaturationPenalty: -18,
   rosterNeed: 5,
   rosterSurplus: -20,
   boardValue: 2,
@@ -16,9 +19,53 @@ const WEIGHTS = {
   },
 };
 
+const EARLY_POSITION_BONUS = {
+  RB: 15,
+  WR: 9,
+  TE: 5,
+  QB: 0,
+  DEF: -35,
+  K: -35,
+};
+const POSITION_PRIORITY_ORDER = ["RB", "WR", "TE", "QB", "DEF", "K"];
+
+const BACKUP_TIER_SUPPRESSION = -30;
+
+const BACKUP_UNLOCK_PROGRESS = 0.8;
+
+function hasUnfilledHigherPriorityPosition(position, neededPositions) {
+  const idx = POSITION_PRIORITY_ORDER.indexOf(position);
+  if (idx <= 0) return false;
+  for (let i = 0; i < idx; i++) {
+    if (neededPositions.has(POSITION_PRIORITY_ORDER[i])) return true;
+  }
+  return false;
+}
+
+function getDraftProgress(currentPick, totalPicks) {
+  if (!totalPicks) return 0;
+  return Math.min(1, Math.max(0, (currentPick - 1) / totalPicks));
+}
+
+function isTierGatedOut(position, neededPositions, currentPick, totalPicks) {
+  if (neededPositions.has(position)) return false;
+
+  const draftProgress = getDraftProgress(currentPick, totalPicks);
+  if (draftProgress >= BACKUP_UNLOCK_PROGRESS) return false;
+
+  return hasUnfilledHigherPriorityPosition(position, neededPositions);
+}
+
+function getPositionalPriorityBonus(position, currentPick, totalPicks) {
+  const base = EARLY_POSITION_BONUS[position];
+  if (base === undefined || !totalPicks) return 0;
+  const fadeFactor = 1 - getDraftProgress(currentPick, totalPicks);
+  return base * fadeFactor;
+}
+
 const DEFAULT_POSITION_NEEDS = { QB: 1, RB: 2, WR: 2, TE: 1, K: 1, DEF: 1 };
-const FLEX_ELIGIBLE = ["RB", "WR", "TE"];
 const BENCH_SWING_ELIGIBLE = ["RB", "WR"];
+const NO_BOARD_VALUE_POSITIONS = ["K", "DEF"];
 
 function parseSosRating(sosString) {
   if (!sosString) return 3;
@@ -42,14 +89,13 @@ function getLastInTier(availablePlayers) {
   return lastInTier;
 }
 
-function getFlexUsage(rosterByPosition, positionNeeds) {
-  let used = 0;
-  FLEX_ELIGIBLE.forEach((pos) => {
-    const count = rosterByPosition[pos]?.length ?? 0;
-    const base = positionNeeds[pos] ?? 0;
-    used += Math.max(0, count - base);
+function getStarterCounts(rosterByPosition, positionNeeds) {
+  const starterCounts = {};
+  Object.entries(positionNeeds).forEach(([pos, min]) => {
+    const current = rosterByPosition[pos]?.length ?? 0;
+    starterCounts[pos] = Math.min(current, min);
   });
-  return used;
+  return starterCounts;
 }
 
 function getNeededPositions(
@@ -111,42 +157,121 @@ function getByeWeekCounts(yourRoster) {
 
 function scorePlayer(
   player,
-  { lastInTier, neededPositions, surplusPositions, byeWeekCounts, currentPick },
+  {
+    lastInTier,
+    neededPositions,
+    surplusPositions,
+    byeWeekCounts,
+    currentPick,
+    totalPicks,
+    positionNeeds,
+    byPositionRoster,
+  },
 ) {
   let score = 0;
   const reasons = [];
 
   score += WEIGHTS.rankBase - player.rank;
 
-  const pickDelta = currentPick - player.rank;
-  if (pickDelta > 0) {
-    score += pickDelta * WEIGHTS.boardValue;
-    reasons.push(`Still available ${pickDelta} picks past their expected spot`);
-  } else if (pickDelta < 0) {
-    score += pickDelta * WEIGHTS.boardValue;
-    reasons.push(`Reaching ${Math.abs(pickDelta)} picks early`);
+  const positionalBonus = getPositionalPriorityBonus(
+    player.position,
+    currentPick,
+    totalPicks,
+  );
+  if (positionalBonus !== 0) {
+    score += positionalBonus;
+    if (positionalBonus <= -15) {
+      reasons.push({
+        text: `${player.position} value is low this early — wait on this position`,
+        type: "warning",
+      });
+    } else if (positionalBonus >= 8) {
+      reasons.push({
+        text: `${player.position} scarcity favors taking this now`,
+        type: "positive",
+      });
+    }
+  }
+
+  if (!NO_BOARD_VALUE_POSITIONS.includes(player.position)) {
+    const pickDelta = currentPick - player.rank;
+    if (pickDelta > 0) {
+      score += pickDelta * WEIGHTS.boardValue;
+      reasons.push({
+        text: `Still available ${pickDelta} picks past their expected spot`,
+        type: "steal",
+      });
+    } else if (pickDelta < 0) {
+      score += pickDelta * WEIGHTS.boardValue;
+      reasons.push({
+        text: `Reaching ${Math.abs(pickDelta)} picks early`,
+        type: "reach",
+      });
+    }
   }
 
   if (lastInTier.has(player.name)) {
     score += WEIGHTS.tierDrop;
-    reasons.push("Last in tier — quality drops after this pick");
+    reasons.push({
+      text: "Last in tier — quality drops after this pick",
+      type: "positive",
+    });
   }
 
+  const currentAtPos = byPositionRoster[player.position]?.length ?? 0;
+  const neededAtPos = positionNeeds[player.position] ?? 0;
+
   if (neededPositions.has(player.position)) {
-    score += WEIGHTS.rosterNeed;
-    reasons.push(`Your roster needs a ${player.position}`);
+    score += WEIGHTS.starterNeed;
+    reasons.push({
+      text: `Fills a starting ${player.position} slot`,
+      type: "positive",
+    });
   } else if (surplusPositions.has(player.position)) {
-    score += WEIGHTS.rosterSurplus;
-    reasons.push(
-      `You already have enough ${player.position}s (including FLEX capacity)`,
-    );
+    const extrasBeyondCapacity = Math.max(0, currentAtPos - neededAtPos - 1);
+    score +=
+      WEIGHTS.rosterSurplus +
+      extrasBeyondCapacity * WEIGHTS.positionSaturationPenalty;
+    reasons.push({
+      text: `You already have enough ${player.position}s (including FLEX capacity)`,
+      type: "warning",
+    });
+  } else {
+    const draftProgress = getDraftProgress(currentPick, totalPicks);
+    const gatedByHigherPriority =
+      draftProgress < BACKUP_UNLOCK_PROGRESS &&
+      hasUnfilledHigherPriorityPosition(player.position, neededPositions);
+
+    if (gatedByHigherPriority) {
+      score += BACKUP_TIER_SUPPRESSION;
+      reasons.push({
+        text: `Fill your RB/WR/TE/QB starters before adding another ${player.position}`,
+        type: "warning",
+      });
+    } else {
+      const extrasAlready = Math.max(0, currentAtPos - neededAtPos);
+      score +=
+        WEIGHTS.benchDepth + extrasAlready * WEIGHTS.positionSaturationPenalty;
+      reasons.push({
+        text: `Starters filled at ${player.position} — additional depth`,
+        type: "neutral",
+      });
+    }
   }
 
   const sosStars = parseSosRating(player.sosRating);
   const sosBonus = WEIGHTS.sosBonuses[sosStars] ?? 0;
   score += sosBonus;
-  if (sosStars >= 4) reasons.push(`Favorable schedule (${sosStars}/5 stars)`);
-  if (sosStars <= 2) reasons.push(`Tough schedule (${sosStars}/5 stars)`);
+  if (sosStars >= 4)
+    reasons.push({
+      text: `Favorable schedule (${sosStars}/5 stars)`,
+      type: "positive",
+    });
+  if (sosStars <= 2)
+    reasons.push({
+      text: `Tough schedule (${sosStars}/5 stars)`,
+      type: "warning",
+    });
 
   const byeCount = byeWeekCounts.counts[player.byeWeek] || 0;
   if (byeCount >= 2) {
@@ -155,14 +280,23 @@ function scorePlayer(
     let penalty = byeCount * WEIGHTS.byeWeekBase + WEIGHTS.byeWeekStack;
     penalty += samePosCount * WEIGHTS.byeWeekSamePosition;
     score -= penalty;
-    reasons.unshift(
-      `Bye week ${player.byeWeek} conflicts with ${byeCount} players you've already drafted${samePosCount > 0 ? " (including same position)" : ""}`,
-    );
+    reasons.unshift({
+      text: `Bye week ${player.byeWeek} conflicts with ${byeCount} players you've already drafted${samePosCount > 0 ? " (including same position)" : ""}`,
+      type: "warning",
+    });
   }
 
-  const topReason = reasons[0] ?? `Ranked #${player.rank} overall`;
+  const topReason = reasons[0] ?? {
+    text: `Ranked #${player.rank} overall`,
+    type: "neutral",
+  };
 
-  return { ...player, valueScore: score, reason: topReason };
+  return {
+    ...player,
+    valueScore: score,
+    reason: topReason.text,
+    reasonType: topReason.type,
+  };
 }
 
 function calculateValues(
@@ -173,9 +307,11 @@ function calculateValues(
   positionNeeds = DEFAULT_POSITION_NEEDS,
   flexCapacity = 0,
   benchSwingCapacity = 0,
+  totalPicks = 0,
+  starterNeeds = positionNeeds,
 ) {
   const lastInTier = getLastInTier(availablePlayers);
-  const neededPositions = getNeededPositions(rosterByPosition, positionNeeds);
+  const neededPositions = getNeededPositions(rosterByPosition, starterNeeds);
   const surplusPositions = getSurplusPositions(
     rosterByPosition,
     positionNeeds,
@@ -191,6 +327,9 @@ function calculateValues(
       surplusPositions,
       byeWeekCounts,
       currentPick,
+      totalPicks,
+      positionNeeds,
+      byPositionRoster: rosterByPosition,
     }),
   );
 
@@ -205,6 +344,8 @@ module.exports = {
   getSurplusPositions,
   parseSosRating,
   DEFAULT_POSITION_NEEDS,
-  FLEX_ELIGIBLE,
   BENCH_SWING_ELIGIBLE,
+  NO_BOARD_VALUE_POSITIONS,
+  POSITION_PRIORITY_ORDER,
+  isTierGatedOut,
 };

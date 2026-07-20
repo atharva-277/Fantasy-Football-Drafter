@@ -27,25 +27,58 @@ function initDraft(config) {
   const rosterConfig = config.rosterConfig || DEFAULT_ROSTER_CONFIG;
   const bench = rosterConfig.BENCH || 0;
 
-  let remaining = bench;
-  const teBonus = remaining > 0 ? 1 : 0;
-  remaining -= teBonus;
-  const qbBonus = remaining > 0 ? 1 : 0;
-  remaining -= qbBonus;
-  const benchSwingCapacity = Math.max(0, remaining);
+  const teEnabled = (rosterConfig.TE || 0) > 0;
+  const qbEnabled = (rosterConfig.QB || 0) > 0;
+  const rbEnabled = (rosterConfig.RB || 0) > 0;
+  const wrEnabled = (rosterConfig.WR || 0) > 0;
 
-  const positionNeeds = {
-    QB: rosterConfig.QB + qbBonus,
-    RB: rosterConfig.RB,
-    WR: rosterConfig.WR,
-    TE: rosterConfig.TE + teBonus,
-    K: rosterConfig.K,
-    DEF: rosterConfig.DEF,
-  };
+  let remaining = bench;
+
+  const teBonus = teEnabled && remaining > 0 ? 1 : 0;
+  remaining -= teBonus;
+
+  const qbBonus = qbEnabled && remaining > 0 ? 1 : 0;
+  remaining -= qbBonus;
+
+  let rbGuaranteed = 0;
+  let wrGuaranteed = 0;
+  let benchSwingCapacity = 0;
+
+  if (rbEnabled && wrEnabled) {
+    rbGuaranteed = Math.floor(remaining / 2);
+    wrGuaranteed = Math.floor(remaining / 2);
+    benchSwingCapacity = remaining - rbGuaranteed - wrGuaranteed; // 0 or 1
+  } else if (rbEnabled) {
+    rbGuaranteed = remaining;
+  } else if (wrEnabled) {
+    wrGuaranteed = remaining;
+  }
+
+  const positionNeeds = {};
+  if (qbEnabled) positionNeeds.QB = rosterConfig.QB + qbBonus;
+  if (rbEnabled) positionNeeds.RB = rosterConfig.RB + rbGuaranteed;
+  if (wrEnabled) positionNeeds.WR = rosterConfig.WR + wrGuaranteed;
+  if (teEnabled) positionNeeds.TE = rosterConfig.TE + teBonus;
+  if ((rosterConfig.K || 0) > 0) positionNeeds.K = rosterConfig.K;
+  if ((rosterConfig.DEF || 0) > 0) positionNeeds.DEF = rosterConfig.DEF;
+
+  const starterNeeds = {};
+  if (qbEnabled) starterNeeds.QB = rosterConfig.QB;
+  if (rbEnabled) starterNeeds.RB = rosterConfig.RB;
+  if (wrEnabled) starterNeeds.WR = rosterConfig.WR;
+  if (teEnabled) starterNeeds.TE = rosterConfig.TE;
+  if ((rosterConfig.K || 0) > 0) starterNeeds.K = rosterConfig.K;
+  if ((rosterConfig.DEF || 0) > 0) starterNeeds.DEF = rosterConfig.DEF;
 
   state.config = {
     ...config,
-    rosterConfig: { ...rosterConfig, positionNeeds, benchSwingCapacity },
+    rosterConfig: {
+      ...rosterConfig,
+      positionNeeds,
+      starterNeeds,
+      benchSwingCapacity,
+      enabledPositions: Object.keys(positionNeeds),
+    },
   };
   state.currentPick = 1;
   state.totalPicks = config.teamCount * config.totalRounds;
