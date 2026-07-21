@@ -581,7 +581,7 @@ function renderRosterStrip(roster = []) {
   ROSTER_SLOTS.forEach((pos, i) => {
     const player = assignments[i];
     strip.innerHTML += `
-      <div class="roster-slot">
+      <div class="roster-slot" data-position="${pos}" ${player ? `data-filled-position="${player.position}"` : ""}>
         <span class="roster-slot-pos">${pos}</span>
         <div class="roster-slot-player ${player ? "filled" : ""}">
           ${player ? getDisplayLastName(player.playerName) : "—"}
@@ -609,6 +609,7 @@ function renderPicksList(newPick) {
 
   const row = document.createElement("div");
   row.className = `pick-row ${newPick.isYours ? "your-pick" : ""}`;
+  row.dataset.position = newPick.position;
   row.innerHTML = `
     <span class="pick-number">#${newPick.pickNumber}</span>
     <span class="pick-team">T${newPick.team}</span>
