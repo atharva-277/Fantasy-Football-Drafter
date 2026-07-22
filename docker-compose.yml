@@ -1,0 +1,13 @@
+services:
+  web:
+    image: node:20-slim
+    container_name: ff-draft-assistant
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: sh -c "npm install && node src/server.js"
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
