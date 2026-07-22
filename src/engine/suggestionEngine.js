@@ -143,6 +143,8 @@ function getSuggestions() {
     valueScore: Math.round(p.valueScore),
     reason: p.reason,
     reasonType: p.reasonType,
+    sosRating: p.sosRating ?? null,
+    age: p.age ?? null,
     isReach:
       !NO_BOARD_VALUE_POSITIONS.includes(p.position) && currentPick < p.rank,
     isSteal:

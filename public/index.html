@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
@@ -115,7 +115,7 @@
       <!-- Left Panel: Suggestions -->
       <section class="panel suggestions-panel" id="suggestionsPanel">
         <div class="panel-header">
-          <span class="panel-title">TOP PICKS</span>
+          <span class="panel-title">PLAYER POOL</span>
           <div class="panel-header-right">
             <button class="toggle-btn" id="topTalentToggle">
               Top Talent: OFF
@@ -142,9 +142,25 @@
           />
         </div>
 
-        <!-- Suggestions / Search Results -->
-        <div class="suggestions-list" id="suggestionsList">
-          <div class="empty-state">Waiting for draft to begin...</div>
+        <div class="suggestions-table-wrap">
+          <table class="suggestions-table">
+            <thead>
+              <tr>
+                <th class="col-rank">#</th>
+                <th class="col-player">Player</th>
+                <th class="col-bye">Bye</th>
+                <th class="col-sos">SOS</th>
+                <th class="col-score">Score</th>
+              </tr>
+            </thead>
+            <tbody id="suggestionsList">
+              <tr>
+                <td colspan="5" class="empty-state">
+                  Waiting for draft to begin...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- Log Pick Footer -->
@@ -158,14 +174,13 @@
         </div>
       </section>
 
-      <!-- Right Panel: Draft Board -->
       <section class="panel board-panel">
         <div class="panel-header">
           <span class="panel-title">DRAFT BOARD</span>
           <span class="panel-badge" id="pickCount">0 picks made</span>
         </div>
         <div class="roster-strip" id="rosterStrip"></div>
-        <div class="picks-log" id="picksList">
+        <div class="board-grid-wrap" id="boardGridWrap">
           <div class="empty-state">No picks yet.</div>
         </div>
       </section>

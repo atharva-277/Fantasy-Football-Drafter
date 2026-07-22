@@ -23,6 +23,13 @@ let searchTimeout = null;
 let showTopTalent = false;
 
 let ROSTER_SLOTS = buildRosterSlots(rosterConfig);
+let allPicksLog = [];
+
+function getTeamLogoUrl(team) {
+  if (!team) return null;
+  const code = team.toLowerCase();
+  return `https://a.espncdn.com/i/teamlogos/nfl/500/${code}.png`;
+}
 
 function buildRosterSlots(cfg) {
   const slots = [];
@@ -72,6 +79,14 @@ function updateComputedRounds() {
   const cfg = readRosterConfigFromInputs();
   document.getElementById("computedRounds").textContent =
     buildRosterSlots(cfg).length;
+}
+
+function sosStarsDisplay(sosRating) {
+  if (!sosRating) return null;
+  const match = String(sosRating).match(/^(\d)/);
+  if (!match) return null;
+  const stars = parseInt(match[1]);
+  return "★".repeat(stars) + "☆".repeat(5 - stars);
 }
 
 async function checkServer() {
@@ -144,6 +159,8 @@ async function startDraft() {
 
     populateTeamSelect();
     renderRosterStrip([]);
+    allPicksLog = [];
+    renderBoardGrid();
     updateFromServer(data);
 
     document.getElementById("setupOverlay").classList.add("hidden");
@@ -201,7 +218,6 @@ function updateFromServer(data) {
   }
 }
 
-// ── Turn State ─────────────────────────────────────────────
 function updateTurnState(meta) {
   const totalPicks = draftConfig.teamCount * draftConfig.totalRounds;
   document.getElementById("currentPick").textContent = meta.isDraftOver
@@ -261,7 +277,6 @@ function renderDraftComplete() {
     '<div class="empty-state">🏁 Draft complete — good luck this season!</div>';
 }
 
-// ── Next Picks Display ─────────────────────────────────────
 function updateNextPicks(nextPicks) {
   const container = document.getElementById("nextPicksDisplay");
   if (!nextPicks?.length) {
@@ -284,54 +299,64 @@ function updateNextPicks(nextPicks) {
   `;
 }
 
-// ── Suggestions ────────────────────────────────────────────
 function renderSuggestions(suggestions) {
   const list = document.getElementById("suggestionsList");
   list.innerHTML = "";
 
   if (!suggestions?.length) {
-    list.innerHTML = '<div class="empty-state">No suggestions available.</div>';
+    list.innerHTML =
+      '<tr><td colspan="7" class="empty-state">No suggestions available.</td></tr>';
     return;
   }
 
   suggestions.forEach((s) => {
-    const card = document.createElement("div");
-    let cardClass = "suggestion-card";
-    if (s.isReach) cardClass += " is-reach";
-    if (s.isSteal) cardClass += " is-steal";
-    if (selectedPlayer?.name === s.name) cardClass += " is-selected";
+    const row = document.createElement("tr");
+    let rowClass = "sugg-row";
+    if (s.isReach) rowClass += " is-reach";
+    if (s.isSteal) rowClass += " is-steal";
+    if (selectedPlayer?.name === s.name) rowClass += " is-selected";
 
-    card.className = cardClass;
-    card.dataset.name = s.name;
-    card.dataset.position = s.position;
-    card.dataset.team = s.team;
+    row.className = rowClass;
+    row.dataset.position = s.position;
+    row.dataset.name = s.name;
+    row.dataset.team = s.team;
 
-    card.innerHTML = `
-      <div class="suggestion-rank">${s.suggestRank}</div>
-      <div class="suggestion-info">
-        <span class="suggestion-name">${s.name}
-          <span class="suggestion-team">${s.team}</span>
-        </span>
-        <span class="suggestion-reason ${s.reasonType === "warning" || s.reasonType === "reach" ? "reason-reach" : s.reasonType === "steal" ? "reason-steal" : ""}">
-          ${s.reasonType === "warning" || s.reasonType === "reach" ? "⚠️" : s.reasonType === "steal" ? "🔥" : "•"} ${s.reason}
-        </span>
-      </div>
-      <div class="suggestion-meta">
-        <span class="pos-badge pos-${s.position}">${s.position}</span>
-        <span class="tier-label">T${s.tier} · Bye ${s.byeWeek || "—"}</span>
-        <span class="value-score">${s.valueScore} pts</span>
-      </div>
-    `;
+    const sosStars = sosStarsDisplay(s.sosRating);
 
-    card.addEventListener("click", () =>
+    row.innerHTML = `
+  <td class="col-rank">${s.suggestRank}</td>
+  <td class="col-player">
+    <span class="player-name" title="${s.name}">${s.name}</span>
+  </td>
+  <td class="col-bye">${s.byeWeek || "—"}</td>
+  <td class="col-sos">${sosStars || "—"}</td>
+  <td class="col-score">${s.valueScore}</td>
+`;
+
+    row.addEventListener("click", () =>
       selectPlayer({ name: s.name, position: s.position, team: s.team }),
     );
 
-    list.appendChild(card);
+    list.appendChild(row);
+
+    const detailRow = document.createElement("tr");
+    detailRow.className = "sugg-detail-row";
+    detailRow.dataset.name = s.name;
+    detailRow.innerHTML = `
+  <td class="sugg-detail-cell" colspan="5">
+    <div class="player-detail-meta">
+      <span><img class="team-logo" src="${getTeamLogoUrl(s.team)}" alt="${s.team}" onerror="this.style.display='none'" />${s.age ? ` · ${s.age}y` : ""}</span>
+      <span>Tier ${s.tier}</span>
+      <div class="player-reason ${s.reasonType === "warning" || s.reasonType === "reach" ? "reason-reach" : s.reasonType === "steal" ? "reason-steal" : ""}">
+      ${s.reasonType === "warning" || s.reasonType === "reach" ? "⚠" : s.reasonType === "steal" ? "▲" : "•"} ${s.reason}
+    </div>
+    </div>
+  </td>
+`;
+    list.appendChild(detailRow);
   });
 }
 
-// ── Search ─────────────────────────────────────────────────
 function initSearch() {
   const input = document.getElementById("playerSearch");
 
@@ -364,58 +389,67 @@ function renderSearchResults(results) {
   list.innerHTML = "";
 
   if (!results.length) {
-    list.innerHTML = '<div class="empty-state">No players found.</div>';
+    list.innerHTML =
+      '<tr><td colspan="5" class="empty-state">No players found.</td></tr>';
     return;
   }
 
   results.forEach((p) => {
-    const card = document.createElement("div");
-    let cardClass = `suggestion-card ${p.taken ? "is-taken" : ""}`;
-    if (!p.taken && p.isReach) cardClass += " is-reach";
-    if (!p.taken && p.isSteal) cardClass += " is-steal";
-    if (selectedPlayer?.name === p.name) cardClass += " is-selected";
+    const row = document.createElement("tr");
+    let rowClass = `sugg-row ${p.taken ? "is-taken" : ""}`;
+    if (!p.taken && p.isReach) rowClass += " is-reach";
+    if (!p.taken && p.isSteal) rowClass += " is-steal";
+    if (selectedPlayer?.name === p.name) rowClass += " is-selected";
 
-    card.className = cardClass;
-    card.dataset.name = p.name;
-    card.dataset.position = p.position;
-    card.dataset.team = p.team;
+    row.className = rowClass;
+    row.dataset.position = p.position;
+    row.dataset.name = p.name;
+    row.dataset.team = p.team;
 
-    const statusLine = p.taken
-      ? "❌ Already drafted"
-      : `Tier ${p.tier} · Bye ${p.byeWeek || "—"}${p.reason ? ` — ${p.reason}` : ""}`;
-
-    card.innerHTML = `
-      <div class="suggestion-rank" style="font-size:14px">#${p.rank}</div>
-      <div class="suggestion-info">
-        <span class="suggestion-name">${p.name}
-          <span class="suggestion-team">${p.team}</span>
-        </span>
-        <span class="suggestion-reason ${p.taken ? "reason-reach" : ""}">
-          ${statusLine}
-        </span>
-      </div>
-      <div class="suggestion-meta">
-        <span class="pos-badge pos-${p.position}">${p.position}</span>
-        ${p.valueScore !== null ? `<span class="value-score">${p.valueScore} pts</span>` : ""}
-      </div>
-    `;
+    row.innerHTML = `
+  <td class="col-rank">#${p.rank}</td>
+  <td class="col-player">
+    <span class="player-name" title="${p.name}">${p.name}</span>
+  </td>
+  <td class="col-bye">${p.byeWeek || "—"}</td>
+  <td class="col-sos">—</td>
+  <td class="col-score">${p.valueScore !== null ? p.valueScore : "—"}</td>
+`;
 
     if (!p.taken) {
-      card.addEventListener("click", () => {
+      row.addEventListener("click", () => {
         selectPlayer({ name: p.name, position: p.position, team: p.team });
       });
     }
 
-    list.appendChild(card);
+    list.appendChild(row);
+
+    const detailRow = document.createElement("tr");
+    detailRow.className = "sugg-detail-row";
+    detailRow.dataset.name = p.name;
+    detailRow.innerHTML = `
+  <td class="sugg-detail-cell" colspan="5">
+    <div class="player-detail-meta">
+      <span><img class="team-logo" src="${getTeamLogoUrl(p.team)}" alt="${p.team}" onerror="this.style.display='none'" /></span>
+      <span>Tier ${p.tier}</span>
+      <div class="player-reason ${p.taken ? "reason-reach" : ""}">
+      ${p.taken ? "Already drafted" : p.reason || `Tier ${p.tier}`}
+    </div>
+    </div>
+  </td>
+`;
+    list.appendChild(detailRow);
   });
 }
 
-// ── Player Selection ───────────────────────────────────────
 function selectPlayer(player) {
   selectedPlayer = player;
 
-  document.querySelectorAll(".suggestion-card").forEach((c) => {
-    c.classList.toggle("is-selected", c.dataset.name === player.name);
+  document.querySelectorAll(".sugg-row").forEach((r) => {
+    r.classList.toggle("is-selected", r.dataset.name === player.name);
+  });
+  document.querySelectorAll(".sugg-detail-row").forEach((r) => {
+    r.classList.toggle("is-open", r.dataset.name === player.name);
   });
 
   document.getElementById("logPickBtn").textContent = `Log: ${player.name}`;
@@ -425,8 +459,11 @@ function selectPlayer(player) {
 function clearSelectedPlayer() {
   selectedPlayer = null;
   document
-    .querySelectorAll(".suggestion-card")
-    .forEach((c) => c.classList.remove("is-selected"));
+    .querySelectorAll(".sugg-row")
+    .forEach((r) => r.classList.remove("is-selected"));
+  document
+    .querySelectorAll(".sugg-detail-row")
+    .forEach((r) => r.classList.remove("is-open"));
   document.getElementById("logPickBtn").textContent = "Log Pick";
   document.getElementById("logPickBtn").classList.remove("has-selection");
 }
@@ -460,42 +497,52 @@ function renderTopAvailable(players) {
   list.innerHTML = "";
 
   if (!players?.length) {
-    list.innerHTML = '<div class="empty-state">No players available.</div>';
+    list.innerHTML =
+      '<tr><td colspan="7" class="empty-state">No players available.</td></tr>';
     return;
   }
 
   players.forEach((p, i) => {
-    const card = document.createElement("div");
-    let cardClass = "suggestion-card is-board-view";
-    if (selectedPlayer?.name === p.name) cardClass += " is-selected";
+    const row = document.createElement("tr");
+    let rowClass = "sugg-row is-board-view";
+    if (selectedPlayer?.name === p.name) rowClass += " is-selected";
 
-    card.className = cardClass;
-    card.dataset.name = p.name;
-    card.dataset.position = p.position;
-    card.dataset.team = p.team;
+    row.className = rowClass;
+    row.dataset.position = p.position;
+    row.dataset.name = p.name;
+    row.dataset.team = p.team;
 
-    card.innerHTML = `
-      <div class="suggestion-rank">${i + 1}</div>
-      <div class="suggestion-info">
-        <span class="suggestion-name">${p.name}
-          <span class="suggestion-team">${p.team}</span>
-        </span>
-        <span class="suggestion-reason">Tier ${p.tier} · Bye ${p.byeWeek || "—"}</span>
-      </div>
-      <div class="suggestion-meta">
-        <span class="pos-badge pos-${p.position}">${p.position}</span>
-      </div>
-    `;
+    row.innerHTML = `
+  <td class="col-rank">${i + 1}</td>
+  <td class="col-player">
+    <span class="player-name" title="${p.name}">${p.name}</span>
+  </td>
+  <td class="col-bye">${p.byeWeek || "—"}</td>
+  <td class="col-sos">—</td>
+  <td class="col-score">—</td>
+`;
 
-    card.addEventListener("click", () =>
+    row.addEventListener("click", () =>
       selectPlayer({ name: p.name, position: p.position, team: p.team }),
     );
 
-    list.appendChild(card);
+    list.appendChild(row);
+
+    const detailRow = document.createElement("tr");
+    detailRow.className = "sugg-detail-row";
+    detailRow.dataset.name = p.name;
+    detailRow.innerHTML = `
+  <td class="sugg-detail-cell" colspan="5">
+    <div class="player-detail-meta">
+      <span><img class="team-logo" src="${getTeamLogoUrl(p.team)}" alt="${p.team}" onerror="this.style.display='none'" /></span>
+      <span>Tier ${p.tier}</span>
+    </div>
+  </td>
+`;
+    list.appendChild(detailRow);
   });
 }
 
-// ── Log a Pick ─────────────────────────────────────────────
 function initPickLogger() {
   document.getElementById("logPickBtn").addEventListener("click", logPick);
 }
@@ -533,28 +580,22 @@ async function logPick() {
 
 const FLEX_ELIGIBLE = ["RB", "WR", "TE"];
 
-// Assigns each drafted player to a matching roster slot: exact position
-// first, then FLEX if eligible, then bench — in draft order, so earlier
-// picks get priority for their natural position slot.
 function assignRosterSlots(roster, slotLabels) {
   const assignments = new Array(slotLabels.length).fill(null);
 
   roster.forEach((player) => {
     let slotIndex = -1;
 
-    // 1. Exact position match
     slotIndex = slotLabels.findIndex(
       (label, i) => label === player.position && !assignments[i],
     );
 
-    // 2. FLEX, if eligible
     if (slotIndex === -1 && FLEX_ELIGIBLE.includes(player.position)) {
       slotIndex = slotLabels.findIndex(
         (label, i) => label === "FLEX" && !assignments[i],
       );
     }
 
-    // 3. Bench
     if (slotIndex === -1) {
       slotIndex = slotLabels.findIndex(
         (label, i) => label === "BE" && !assignments[i],
@@ -564,14 +605,11 @@ function assignRosterSlots(roster, slotLabels) {
     if (slotIndex !== -1) {
       assignments[slotIndex] = player;
     }
-    // if no slot at all is open (shouldn't happen given totalRounds ===
-    // slot count), the player just won't show in the strip
   });
 
   return assignments;
 }
 
-// ── Roster Strip ───────────────────────────────────────────
 function renderRosterStrip(roster = []) {
   const strip = document.getElementById("rosterStrip");
   strip.innerHTML = "";
@@ -591,7 +629,6 @@ function renderRosterStrip(roster = []) {
   });
 }
 
-// ── Pick Count ─────────────────────────────────────────────
 function updatePickCount() {
   const total = draftConfig.teamCount * draftConfig.totalRounds;
   const current = draftMeta.currentPick ?? 1;
@@ -599,25 +636,60 @@ function updatePickCount() {
     `${current - 1} of ${total} picks made`;
 }
 
-// ── Picks Log ──────────────────────────────────────────────
 function renderPicksList(newPick) {
   if (!newPick) return;
+  allPicksLog.push(newPick);
+  renderBoardGrid();
+}
 
-  const list = document.getElementById("picksList");
-  const empty = list.querySelector(".empty-state");
-  if (empty) empty.remove();
+function renderBoardGrid() {
+  const wrap = document.getElementById("boardGridWrap");
 
-  const row = document.createElement("div");
-  row.className = `pick-row ${newPick.isYours ? "your-pick" : ""}`;
-  row.dataset.position = newPick.position;
-  row.innerHTML = `
-    <span class="pick-number">#${newPick.pickNumber}</span>
-    <span class="pick-team">T${newPick.team}</span>
-    <span class="pick-player">${newPick.playerName}</span>
-    <span class="pos-badge pos-${newPick.position}">${newPick.position}</span>
-  `;
+  if (!allPicksLog.length) {
+    wrap.innerHTML = '<div class="empty-state">No picks yet.</div>';
+    return;
+  }
 
-  list.insertBefore(row, list.firstChild);
+  const teamCount = draftConfig.teamCount;
+  const totalRounds = draftConfig.totalRounds;
+
+  const byRoundTeam = {};
+  allPicksLog.forEach((p) => {
+    if (!byRoundTeam[p.round]) byRoundTeam[p.round] = {};
+    byRoundTeam[p.round][p.team] = p;
+  });
+
+  const maxRoundWithPicks = Math.max(...allPicksLog.map((p) => p.round));
+  const roundsToShow = Math.min(totalRounds, maxRoundWithPicks + 1);
+
+  let html =
+    '<table class="board-grid"><thead><tr><th class="round-col">RD</th>';
+  for (let t = 1; t <= teamCount; t++) {
+    html += `<th class="${t === draftConfig.yourPick ? "your-team-col" : ""}">T${t}</th>`;
+  }
+  html += "</tr></thead><tbody>";
+
+  for (let r = 1; r <= roundsToShow; r++) {
+    html += `<tr><td class="round-col">${r}</td>`;
+    for (let t = 1; t <= teamCount; t++) {
+      const pick = byRoundTeam[r]?.[t];
+      const isYourCol = t === draftConfig.yourPick;
+      if (pick) {
+        html += `<td class="board-cell filled ${isYourCol ? "your-team-col" : ""}" data-position="${pick.position}" title="${pick.playerName}">
+          <span class="board-cell-pos">${pick.position}</span>
+          <span class="board-cell-name">${getDisplayLastName(pick.playerName)}</span>
+        </td>`;
+      } else {
+        html += `<td class="board-cell ${isYourCol ? "your-team-col" : ""}"></td>`;
+      }
+    }
+    html += "</tr>";
+  }
+
+  html += "</tbody></table>";
+  wrap.innerHTML = html;
+
+  wrap.scrollTop = wrap.scrollHeight;
 }
 
 function initTopTalentToggle() {
