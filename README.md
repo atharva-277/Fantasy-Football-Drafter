@@ -1,7 +1,7 @@
 # Fantasy Football Drafter
 A project made to help assist fantasy football users during their draft
 
-<img width="1917" height="930" alt="image" src="https://github.com/user-attachments/assets/eabff826-2934-4f7a-8a32-a2b6ca837b50" />
+<img width="1917" height="927" alt="Screenshot 2026-07-21 173743" src="https://github.com/user-attachments/assets/0dada821-2293-47f2-99e8-464090a3c615" />
 
 Try it out yourself at: https://fantasy-football-drafter.onrender.com/
 
