@@ -40,6 +40,7 @@ function mergePlayerData(rankings, players) {
       sleeperId: match?.sleeperId ?? null,
       team: match?.team ?? ranked.team,
       age: match?.age ?? null,
+      number: match?.number ?? 0,
     };
   });
 }
@@ -143,6 +144,8 @@ function getSuggestions() {
     valueScore: Math.round(p.valueScore),
     reason: p.reason,
     reasonType: p.reasonType,
+    reasonSecondary: p.reasonSecondary,
+    reasonSecondaryType: p.reasonSecondaryType,
     sosRating: p.sosRating ?? null,
     age: p.age ?? null,
     isReach:
@@ -198,6 +201,7 @@ function searchPlayers(query, limit = SEARCH_LIMIT) {
       team: p.team,
       tier: p.tier,
       byeWeek: p.byeWeek,
+      sosRating: p.sosRating ?? null,
       taken,
       valueScore: scored ? Math.round(scored.valueScore) : null,
       reason: scored ? scored.reason : null,
@@ -222,7 +226,10 @@ function getTopAvailable(limit = SUGGESTION_COUNT) {
     position: p.position,
     team: p.team,
     tier: p.tier,
+    number: p.number ?? null,
+    age: p.age ?? null,
     byeWeek: p.byeWeek,
+    sosRating: p.sosRating ?? null,
   }));
 }
 

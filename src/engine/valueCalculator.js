@@ -291,11 +291,18 @@ function scorePlayer(
     type: "neutral",
   };
 
+  const secondaryReason = reasons[1] ?? {
+    text: `Ranked #${player.rank} overall`,
+    type: "neutral",
+  };
+
   return {
     ...player,
     valueScore: score,
     reason: topReason.text,
     reasonType: topReason.type,
+    reasonSecondary: secondaryReason.text,
+    reasonSecondaryType: secondaryReason.type,
   };
 }
 

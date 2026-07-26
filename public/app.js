@@ -305,7 +305,7 @@ function renderSuggestions(suggestions) {
 
   if (!suggestions?.length) {
     list.innerHTML =
-      '<tr><td colspan="7" class="empty-state">No suggestions available.</td></tr>';
+      '<tr><td colspan="5" class="empty-state">No suggestions available.</td></tr>';
     return;
   }
 
@@ -345,10 +345,15 @@ function renderSuggestions(suggestions) {
     detailRow.innerHTML = `
   <td class="sugg-detail-cell" colspan="5">
     <div class="player-detail-meta">
-      <span><img class="team-logo" src="${getTeamLogoUrl(s.team)}" alt="${s.team}" onerror="this.style.display='none'" />${s.age ? ` · ${s.age}y` : ""}</span>
+      <span><img class="team-logo" src="${getTeamLogoUrl(s.team)}" alt="${s.team}" onerror="this.style.display='none'" />${s.age ? ` • ${s.age}y` : ""}</span>
       <span>Tier ${s.tier}</span>
+      <div class="player-reason-box">
       <div class="player-reason ${s.reasonType === "warning" || s.reasonType === "reach" ? "reason-reach" : s.reasonType === "steal" ? "reason-steal" : ""}">
-      ${s.reasonType === "warning" || s.reasonType === "reach" ? "⚠" : s.reasonType === "steal" ? "▲" : "•"} ${s.reason}
+      ${s.reasonType === "warning" || s.reasonType === "reach" ? "⚠" : s.reasonType === "steal" ? "▲" : ""} ${s.reason}
+    </div>
+    <div class="player-reason ${s.reasonSecondaryType === "warning" || s.reasonSecondaryType === "reach" ? "reason-reach" : s.reasonSecondaryType === "steal" ? "reason-steal" : ""}">
+      ${s.reasonSecondaryType === "warning" || s.reasonSecondaryType === "reach" ? "⚠" : s.reasonSecondaryType === "steal" ? "▲" : ""} ${s.reasonSecondary}
+    </div>
     </div>
     </div>
   </td>
@@ -406,13 +411,15 @@ function renderSearchResults(results) {
     row.dataset.name = p.name;
     row.dataset.team = p.team;
 
+    sosStars = sosStarsDisplay(p.sosRating);
+
     row.innerHTML = `
   <td class="col-rank">#${p.rank}</td>
   <td class="col-player">
     <span class="player-name" title="${p.name}">${p.name}</span>
   </td>
   <td class="col-bye">${p.byeWeek || "—"}</td>
-  <td class="col-sos">—</td>
+  <td class="col-sos">${sosStars || "—"}</td>
   <td class="col-score">${p.valueScore !== null ? p.valueScore : "—"}</td>
 `;
 
@@ -498,7 +505,7 @@ function renderTopAvailable(players) {
 
   if (!players?.length) {
     list.innerHTML =
-      '<tr><td colspan="7" class="empty-state">No players available.</td></tr>';
+      '<tr><td colspan="5" class="empty-state">No players available.</td></tr>';
     return;
   }
 
@@ -512,14 +519,16 @@ function renderTopAvailable(players) {
     row.dataset.name = p.name;
     row.dataset.team = p.team;
 
+    const sosStars = sosStarsDisplay(p.sosRating);
+
     row.innerHTML = `
   <td class="col-rank">${i + 1}</td>
   <td class="col-player">
     <span class="player-name" title="${p.name}">${p.name}</span>
   </td>
   <td class="col-bye">${p.byeWeek || "—"}</td>
-  <td class="col-sos">—</td>
-  <td class="col-score">—</td>
+  <td class="col-sos">${sosStars || "-"}</td>
+  <td class="col-score">N/A</td>
 `;
 
     row.addEventListener("click", () =>
@@ -535,6 +544,8 @@ function renderTopAvailable(players) {
   <td class="sugg-detail-cell" colspan="5">
     <div class="player-detail-meta">
       <span><img class="team-logo" src="${getTeamLogoUrl(p.team)}" alt="${p.team}" onerror="this.style.display='none'" /></span>
+      <span>• ${p.age}y •</span>
+      <span>${p.position}(${p.number}) •</span>
       <span>Tier ${p.tier}</span>
     </div>
   </td>

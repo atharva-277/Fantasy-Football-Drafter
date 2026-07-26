@@ -420,7 +420,7 @@ body {
 }
 
 .suggestions-table {
-  width: 100%;
+  width: 99.3%;
   table-layout: fixed;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
@@ -514,11 +514,20 @@ body {
 .player-detail-meta {
   display: flex;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  gap: 12px;
-  font-size: 14px;
+  gap: 10px;
+  font-size: 20px;
   color: #ffffff;
   margin-bottom: 4px;
+  margin-left: auto;
+}
+
+.player-reason-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 20px;
 }
 
 .player-detail .player-reason {
@@ -1154,7 +1163,6 @@ body {
   padding: 1px 6px;
 }
 
-/* ── Search Area ──────────────────────────────────────────── */
 .search-area {
   padding: 10px 12px;
   background: var(--surface);
@@ -1181,14 +1189,12 @@ body {
   box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
-/* ── Panel Header Right ───────────────────────────────────── */
 .panel-header-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-/* ── Toggle Button ────────────────────────────────────────── */
 .toggle-btn {
   background: var(--surface-3);
   border: 1px solid var(--border-strong);
@@ -1208,7 +1214,6 @@ body {
   color: var(--text);
 }
 
-/* ── Next Picks Row ───────────────────────────────────────── */
 .next-picks-row {
   display: flex;
   gap: 6px;
@@ -1235,7 +1240,6 @@ body {
   border-color: var(--border-strong);
 }
 
-/* ── Selected Card ────────────────────────────────────────── */
 .suggestion-card.is-selected {
   border-color: var(--accent);
   background: var(--accent-dim);
@@ -1257,19 +1261,16 @@ body {
   position: relative;
 }
 
-/* ── Taken Player in Search ───────────────────────────────── */
 .suggestion-card.is-taken {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* ── Log button with selection ────────────────────────────── */
 .btn-log.has-selection {
   background: linear-gradient(135deg, var(--accent) 0%, #7d4de0 100%);
   box-shadow: 0 0 14px var(--accent-glow);
 }
 
-/* ── Wide team select ─────────────────────────────────────── */
 .team-select-wide {
   background: var(--surface-3);
   border: 1px solid var(--border-strong);

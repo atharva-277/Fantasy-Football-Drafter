@@ -3259,16 +3259,16 @@
     "sleeperId": "3258",
     "name": "Nick Vannett",
     "position": "TE",
-    "team": "FA",
+    "team": "SEA",
     "age": 33,
-    "number": 38
+    "number": 83
   },
   {
     "sleeperId": "3269",
     "name": "Chris Moore",
     "position": "WR",
-    "team": "FA",
-    "age": 32,
+    "team": "BAL",
+    "age": 33,
     "number": 19
   },
   {
@@ -4452,7 +4452,7 @@
     "name": "Alvin Kamara",
     "position": "RB",
     "team": "NO",
-    "age": 30,
+    "age": 31,
     "number": 41
   },
   {
@@ -9716,7 +9716,7 @@
     "name": "Olamide Zaccheaus",
     "position": "WR",
     "team": "ATL",
-    "age": 28,
+    "age": 29,
     "number": 14
   },
   {
@@ -11051,7 +11051,7 @@
     "sleeperId": "6850",
     "name": "Harrison Bryant",
     "position": "TE",
-    "team": "SEA",
+    "team": "FA",
     "age": 28,
     "number": 46
   },
@@ -11060,7 +11060,7 @@
     "name": "Van Jefferson",
     "position": "WR",
     "team": "WAS",
-    "age": 29,
+    "age": 30,
     "number": 12
   },
   {
@@ -13636,7 +13636,7 @@
     "name": "Evan McPherson",
     "position": "K",
     "team": "CIN",
-    "age": 26,
+    "age": 27,
     "number": 2
   },
   {
@@ -14388,7 +14388,7 @@
     "name": "Drake London",
     "position": "WR",
     "team": "ATL",
-    "age": 24,
+    "age": 25,
     "number": 5
   },
   {
@@ -14620,7 +14620,7 @@
     "name": "Garrett Wilson",
     "position": "WR",
     "team": "NYJ",
-    "age": 25,
+    "age": 26,
     "number": 5
   },
   {
@@ -14628,7 +14628,7 @@
     "name": "John Metchie",
     "position": "WR",
     "team": "CAR",
-    "age": 25,
+    "age": 26,
     "number": 13
   },
   {
@@ -15043,7 +15043,7 @@
     "sleeperId": "8202",
     "name": "Michael Woods",
     "position": "WR",
-    "team": "FA",
+    "team": "DEN",
     "age": 26,
     "number": 30
   },
@@ -16148,7 +16148,7 @@
     "name": "Brandon Johnson",
     "position": "WR",
     "team": "LV",
-    "age": 27,
+    "age": 28,
     "number": 82
   },
   {
@@ -16541,7 +16541,7 @@
     "position": "RB",
     "team": "DET",
     "age": 24,
-    "number": null
+    "number": 0
   },
   {
     "sleeperId": "9222",
@@ -16596,7 +16596,7 @@
     "name": "Bryce Young",
     "position": "QB",
     "team": "CAR",
-    "age": 24,
+    "age": 25,
     "number": 9
   },
   {
@@ -18789,7 +18789,7 @@
     "position": "RB",
     "team": "NYJ",
     "age": 22,
-    "number": null
+    "number": 0
   },
   {
     "sleeperId": "11577",
@@ -18836,7 +18836,7 @@
     "name": "Jonathon Brooks",
     "position": "RB",
     "team": "CAR",
-    "age": 22,
+    "age": 23,
     "number": 25
   },
   {
@@ -18868,7 +18868,7 @@
     "name": "Trey Benson",
     "position": "RB",
     "team": "ARI",
-    "age": 23,
+    "age": 24,
     "number": 33
   },
   {
@@ -18923,7 +18923,7 @@
     "sleeperId": "11598",
     "name": "Tanner McLachlan",
     "position": "TE",
-    "team": "FA",
+    "team": "SF",
     "age": 27,
     "number": 42
   },
@@ -19797,7 +19797,7 @@
     "position": "WR",
     "team": "DET",
     "age": 26,
-    "number": null
+    "number": 80
   },
   {
     "sleeperId": "12003",
@@ -19965,7 +19965,7 @@
     "position": "TE",
     "team": "KC",
     "age": 26,
-    "number": 85
+    "number": 46
   },
   {
     "sleeperId": "12070",
@@ -21316,7 +21316,7 @@
     "name": "Harold Fannin",
     "position": "TE",
     "team": "CLE",
-    "age": 21,
+    "age": 22,
     "number": 44
   },
   {
@@ -22132,7 +22132,7 @@
     "name": "Rivaldo Fairweather",
     "position": "TE",
     "team": "ARI",
-    "age": 23,
+    "age": 24,
     "number": 45
   },
   {
@@ -22347,9 +22347,9 @@
     "sleeperId": "12933",
     "name": "Caden Prieskorn",
     "position": "TE",
-    "team": "FA",
+    "team": "CAR",
     "age": 26,
-    "number": 88
+    "number": 40
   },
   {
     "sleeperId": "12935",
@@ -22627,7 +22627,7 @@
     "sleeperId": "13034",
     "name": "Tyrone Broden",
     "position": "WR",
-    "team": "SEA",
+    "team": "FA",
     "age": 25,
     "number": 31
   },
@@ -22820,7 +22820,7 @@
     "name": "Jacoby Jones",
     "position": "WR",
     "team": "WAS",
-    "age": 24,
+    "age": 25,
     "number": 84
   },
   {
@@ -22836,7 +22836,7 @@
     "name": "Carter Runyon",
     "position": "TE",
     "team": "LV",
-    "age": 24,
+    "age": 25,
     "number": 84
   },
   {
@@ -23147,9 +23147,9 @@
     "sleeperId": "13227",
     "name": "Mitch Van Vooren",
     "position": "WR",
-    "team": "FA",
+    "team": "NE",
     "age": null,
-    "number": null
+    "number": 46
   },
   {
     "sleeperId": "13228",
@@ -23948,7 +23948,7 @@
     "name": "Brenen Thompson",
     "position": "WR",
     "team": "LAC",
-    "age": 22,
+    "age": 23,
     "number": 89
   },
   {
@@ -24179,7 +24179,7 @@
     "sleeperId": "13427",
     "name": "Diego Pavia",
     "position": "QB",
-    "team": "BAL",
+    "team": "FA",
     "age": 24,
     "number": null
   },
@@ -24284,7 +24284,7 @@
     "name": "Colbie Young",
     "position": "WR",
     "team": "CIN",
-    "age": 23,
+    "age": 24,
     "number": 86
   },
   {
@@ -24396,7 +24396,7 @@
     "name": "Kyron Drones",
     "position": "QB",
     "team": "GB",
-    "age": 22,
+    "age": 23,
     "number": 13
   },
   {
@@ -24621,7 +24621,7 @@
     "position": "WR",
     "team": "BUF",
     "age": null,
-    "number": 82
+    "number": 80
   },
   {
     "sleeperId": "13702",
@@ -24643,7 +24643,7 @@
     "sleeperId": "13708",
     "name": "Kobe Prentice",
     "position": "WR",
-    "team": "CAR",
+    "team": "NE",
     "age": 22,
     "number": 39
   },
@@ -25085,7 +25085,7 @@
     "position": "WR",
     "team": "PIT",
     "age": null,
-    "number": 83
+    "number": 28
   },
   {
     "sleeperId": "13890",
@@ -25510,5 +25510,13 @@
     "team": "CAR",
     "age": 25,
     "number": 35
+  },
+  {
+    "sleeperId": "14061",
+    "name": "Jeremiah Franklin",
+    "position": "TE",
+    "team": "NE",
+    "age": null,
+    "number": 80
   }
 ]
