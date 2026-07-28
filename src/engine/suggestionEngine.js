@@ -10,7 +10,7 @@ const {
 } = require("./valueCalculator");
 const draftState = require("./draftState");
 
-const SUGGESTION_COUNT = 8;
+const SUGGESTION_COUNT = 10;
 const SEARCH_LIMIT = 8;
 
 let playerDB = null;
@@ -22,11 +22,19 @@ async function initEngine(scoringFormat) {
   rankingDB = mergePlayerData(rankingDB, playerDB);
 }
 
+const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
+
 function normalizeName(name) {
-  return name
+  const cleaned = name
     .toLowerCase()
     .replace(/[^a-z0-9 ]/g, "")
     .trim();
+
+  const parts = cleaned.split(/\s+/);
+  if (parts.length > 1 && NAME_SUFFIXES.has(parts[parts.length - 1])) {
+    parts.pop();
+  }
+  return parts.join(" ");
 }
 
 function mergePlayerData(rankings, players) {
