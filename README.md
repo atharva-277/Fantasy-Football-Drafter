@@ -1,7 +1,7 @@
 # Fantasy Football Drafter
 A project made to help assist fantasy football users during their draft
 
-<img width="1917" height="927" alt="Screenshot 2026-07-21 173743" src="https://github.com/user-attachments/assets/0dada821-2293-47f2-99e8-464090a3c615" />
+<img width="1917" height="927" alt="Screenshot 2026-07-30 151753" src="https://github.com/user-attachments/assets/e2ac9c47-2f7b-499c-8a2c-fd36f33b2984" />
 
 Try it out yourself at: https://ffdrafter.atharva02.hackclub.app/
 
@@ -12,6 +12,7 @@ Try it out yourself at: https://ffdrafter.atharva02.hackclub.app/
 * Scoring Type
 * Draft Type (Linear vs Snake)
 * Roster Slot Count
+* Sleeper Draft Integration
 ### Draft Page
 * Suggested Players
 * Top Talent (View top players)
@@ -23,12 +24,19 @@ Try it out yourself at: https://ffdrafter.atharva02.hackclub.app/
 ### Value Calculation Algorithm
 Takes into account a multitude of factors
 * Player bye week
+  * Incrementing penalty start at 6 (12 if same position) increasing by 10
 * Player SOS
+  * Bonus of 4 for very easy, 2 for easy, 0 for medium, -2 for hard, and -4 for very hard
+* Player Ranking
+  * Base of 500, drops 25 with each tier drop
 * Current roster state
+  * 5 bonus for Roster Need / -20 penalty for surplus
+  * 14 bonus for starter need / 2 bonus for bench
+  * -18 penalty for oversaturation
 ### Node/Express.js
 Handles routing for starting draft, logging picks, viewing suggestions
 
 ## Credits
 * Claude was used to generate the UI along with node.js concepts/syntax
 * FantasyPros player rankings for different scoring types
-* Sleeper API for player database
+* Sleeper API for player database and draft integration
