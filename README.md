@@ -34,7 +34,7 @@ Takes into account a multitude of factors
   * 14 bonus for starter need / 2 bonus for bench
   * -18 penalty for oversaturation
 ### Node/Express.js
-Handles routing for starting draft, logging picks, viewing suggestions
+Handles routing for starting draft, logging picks, viewing suggestions, and syncing with Sleeper
 
 ## Credits
 * Claude was used to generate the UI along with node.js concepts/syntax
