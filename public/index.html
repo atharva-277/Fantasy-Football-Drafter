@@ -18,7 +18,7 @@
     <header class="topbar">
       <div class="topbar-left">
         <span class="logo">FF<span class="logo-accent">Draft</span></span>
-        <span class="draft-label">Manual Mode</span>
+        <span class="draft-label" id="mode-label">Manual Mode</span>
       </div>
       <div class="topbar-center">
         <div class="turn-indicator">
@@ -34,8 +34,40 @@
       </div>
     </header>
 
-    <!-- Setup Overlay -->
-    <div class="setup-overlay" id="setupOverlay">
+    <div class="setup-overlay" id="landingOverlay">
+      <div class="setup-card" style="width: 460px">
+        <h2 class="setup-title">Start a Draft</h2>
+        <p class="setup-sub">Choose how you want to run this draft.</p>
+
+        <button class="btn-primary" id="manualModeBtn">Manual Mode</button>
+        <button class="btn-primary" id="sleeperDraftIdBtn">
+          Connect Sleeper (Draft ID)
+        </button>
+
+        <div id="sleeperDraftIdForm" style="display: none" class="field-group">
+          <label for="sleeperDraftIdInput"
+            >Sleeper Draft ID(Found in Link URL)</label
+          >
+          <input
+            type="text"
+            id="sleeperDraftIdInput"
+            placeholder="Paste Draft ID (works for mock drafts too)"
+          />
+          <label>Ensure Settings are Set on Sleeper</label>
+          <button class="btn-primary" id="sleeperDraftIdSubmit">
+            Continue
+          </button>
+        </div>
+
+        <p
+          class="setup-sub"
+          id="landingError"
+          style="color: var(--red); display: none"
+        ></p>
+      </div>
+    </div>
+
+    <div class="setup-overlay hidden" id="setupOverlay">
       <div class="setup-card">
         <h2 class="setup-title">Draft Setup</h2>
         <p class="setup-sub">Configure your league before the draft begins.</p>

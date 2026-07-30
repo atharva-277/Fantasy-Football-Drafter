@@ -6,11 +6,14 @@ const {
   getSuggestions,
   searchPlayers,
   getTopAvailable,
+  findBySleeperId,
 } = require("./engine/suggestionEngine");
 const { loadRankings } = require("./data/rankingsLoader");
+const sleeperClient = require("./data/sleeperClient");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+let lastSyncedPickNo = 0;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
@@ -28,7 +31,10 @@ app.post("/api/draft/start", async (req, res) => {
       scoringFormat,
       rosterConfig,
       draftType,
+      sleeperDraftId,
     } = req.body;
+
+    lastSyncedPickNo = 0;
 
     draftState.initDraft({
       teamCount,
@@ -37,6 +43,7 @@ app.post("/api/draft/start", async (req, res) => {
       scoringFormat,
       rosterConfig,
       draftType,
+      sleeperDraftId,
     });
     await initEngine(scoringFormat);
 
@@ -95,6 +102,60 @@ app.get("/api/draft/top-available", (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.get("/api/sleeper/draft/:draftId", async (req, res) => {
+  try {
+    const draft = await sleeperClient.getDraft(req.params.draftId);
+    res.json({ success: true, config: sleeperClient.mapDraftToConfig(draft) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+
+app.get("/api/sleeper/sync", async (req, res) => {
+  const t0 = Date.now();
+  try {
+    const config = draftState.getConfig();
+    const draftId = config.sleeperDraftId;
+    if (!draftId) {
+      return res.json({ success: true, newPicks: [], ...getSuggestions() });
+    }
+
+    const picks = await sleeperClient.getDraftPicks(draftId);
+    const newSleeperPicks = picks
+      .filter((p) => p.pick_no > lastSyncedPickNo)
+      .sort((a, b) => a.pick_no - b.pick_no);
+
+    const loggedPicks = [];
+    for (const sp of newSleeperPicks) {
+      if (draftState.isDraftOver()) break;
+
+      const ranked = findBySleeperId(sp.player_id);
+      const playerName =
+        ranked?.name ??
+        `${sp.metadata?.first_name ?? ""} ${sp.metadata?.last_name ?? ""}`.trim();
+      const position = ranked?.position ?? sp.metadata?.position ?? "UNK";
+      const byeWeek = ranked?.byeWeek ?? null;
+      const team = sp.draft_slot;
+
+      try {
+        const pick = draftState.logPick({
+          playerName,
+          team,
+          position,
+          sleeperId: sp.player_id,
+          byeWeek,
+        });
+        loggedPicks.push(pick);
+        lastSyncedPickNo = sp.pick_no;
+      } catch (err) {
+        break;
+      }
+    }
+
+    res.json({ success: true, newPicks: loggedPicks, ...getSuggestions() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(PORT);

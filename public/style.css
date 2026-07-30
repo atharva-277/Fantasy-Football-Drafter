@@ -255,6 +255,7 @@ body {
   color: var(--text-muted);
   font-size: 13.5px;
   margin-top: -12px;
+  white-space: pre-line;
 }
 
 .setup-grid {

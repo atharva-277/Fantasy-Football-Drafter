@@ -53,6 +53,11 @@ function mergePlayerData(rankings, players) {
   });
 }
 
+function findBySleeperId(sleeperId) {
+  if (!rankingDB || !sleeperId) return null;
+  return rankingDB.find((p) => p.sleeperId === sleeperId) ?? null;
+}
+
 function getRosterConfig() {
   const config = draftState.getConfig();
   return config.rosterConfig || {};
@@ -241,4 +246,10 @@ function getTopAvailable(limit = SUGGESTION_COUNT) {
   }));
 }
 
-module.exports = { initEngine, getSuggestions, searchPlayers, getTopAvailable };
+module.exports = {
+  initEngine,
+  getSuggestions,
+  searchPlayers,
+  getTopAvailable,
+  findBySleeperId,
+};

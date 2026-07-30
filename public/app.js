@@ -25,6 +25,12 @@ let showTopTalent = false;
 let ROSTER_SLOTS = buildRosterSlots(rosterConfig);
 let allPicksLog = [];
 
+let pendingSleeperDraftId = null;
+let sleeperPollInterval = null;
+let sleeperModeActive = false;
+let syncInProgress = false;
+let sleeperPollTimeout = null;
+
 function getTeamLogoUrl(team) {
   if (!team) return null;
   const code = team.toLowerCase();
@@ -103,6 +109,168 @@ async function checkServer() {
   }
 }
 
+const SLEEPER_LOCKED_FIELDS = [
+  "teamCount",
+  "yourPick",
+  "scoringFormat",
+  "draftType",
+  "slotQB",
+  "slotRB",
+  "slotWR",
+  "slotTE",
+  "slotFLEX",
+  "slotK",
+  "slotDEF",
+  "slotBENCH",
+];
+
+function lockSleeperSyncedFields() {
+  SLEEPER_LOCKED_FIELDS.forEach(
+    (id) => (document.getElementById(id).disabled = true),
+  );
+
+  let banner = document.getElementById("sleeperSyncBanner");
+  if (!banner) {
+    banner = document.createElement("p");
+    banner.id = "sleeperSyncBanner";
+    banner.className = "setup-sub";
+    banner.style.color = "var(--accent-hover)";
+    document
+      .querySelector("#setupOverlay .setup-title")
+      .insertAdjacentElement("afterend", banner);
+  }
+  banner.textContent =
+    "Settings synced from Sleeper and locked. Confirm settings are correct, then Start Draft.\n\nIf incorrect, refresh and input ID again";
+}
+
+function unlockManualFields() {
+  SLEEPER_LOCKED_FIELDS.forEach(
+    (id) => (document.getElementById(id).disabled = false),
+  );
+  document.getElementById("sleeperSyncBanner")?.remove();
+}
+
+function initLanding() {
+  document.getElementById("manualModeBtn").addEventListener("click", () => {
+    pendingSleeperDraftId = null;
+    unlockManualFields();
+    document.getElementById("landingOverlay").classList.add("hidden");
+    document.getElementById("setupOverlay").classList.remove("hidden");
+  });
+
+  document.getElementById("sleeperDraftIdBtn").addEventListener("click", () => {
+    document.getElementById("sleeperDraftIdForm").style.display = "flex";
+  });
+
+  document
+    .getElementById("sleeperDraftIdSubmit")
+    .addEventListener("click", () => {
+      const draftId = document
+        .getElementById("sleeperDraftIdInput")
+        .value.trim();
+      connectSleeperDraft(draftId);
+    });
+}
+
+async function connectSleeperDraft(draftId) {
+  const errEl = document.getElementById("landingError");
+  errEl.style.display = "none";
+
+  if (!draftId) {
+    errEl.textContent = "Enter a Sleeper draft ID.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  try {
+    const draftRes = await fetch(
+      `/api/sleeper/draft/${encodeURIComponent(draftId)}`,
+    );
+    const draftData = await draftRes.json();
+    if (!draftRes.ok) throw new Error(draftData.error);
+
+    const cfg = draftData.config;
+    pendingSleeperDraftId = draftId;
+
+    document.getElementById("teamCount").value = cfg.teamCount;
+    document.getElementById("yourPick").value = cfg.draftPosition[0] || 1;
+    document.getElementById("scoringFormat").value = cfg.scoringFormat;
+    document.getElementById("draftType").value = cfg.draftType;
+    document.getElementById("slotQB").value = cfg.rosterConfig.QB;
+    document.getElementById("slotRB").value = cfg.rosterConfig.RB;
+    document.getElementById("slotWR").value = cfg.rosterConfig.WR;
+    document.getElementById("slotTE").value = cfg.rosterConfig.TE;
+    document.getElementById("slotFLEX").value = cfg.rosterConfig.FLEX;
+    document.getElementById("slotK").value = cfg.rosterConfig.K;
+    document.getElementById("slotDEF").value = cfg.rosterConfig.DEF;
+    document.getElementById("slotBENCH").value = cfg.rosterConfig.BENCH;
+    updateComputedRounds();
+    lockSleeperSyncedFields();
+    document.getElementById("landingOverlay").classList.add("hidden");
+    document.getElementById("setupOverlay").classList.remove("hidden");
+  } catch (err) {
+    errEl.textContent = `Failed to load draft: ${err.message}`;
+    errEl.style.display = "block";
+  }
+}
+
+function startSleeperPolling() {
+  sleeperModeActive = true;
+  document.getElementById("logPickBtn").disabled = true;
+  document.getElementById("logPickBtn").textContent = "Synced from Sleeper";
+  document.getElementById("logPickBtn").classList.remove("has-selection");
+  document.getElementById("teamSelect").disabled = true;
+  document.getElementById("mode-label").textContent = "Sleeper Mode";
+  document.getElementById("playerSearch").placeholder =
+    "Search players (view only — pick on Sleeper)";
+
+  if (sleeperPollTimeout) clearTimeout(sleeperPollTimeout);
+  scheduleSleeperSync();
+}
+
+function scheduleSleeperSync() {
+  sleeperPollTimeout = setTimeout(async () => {
+    await syncSleeperPicks();
+    if (sleeperModeActive) scheduleSleeperSync();
+  }, 500);
+}
+
+async function syncSleeperPicks() {
+  if (syncInProgress) {
+    return;
+  }
+  syncInProgress = true;
+  const t0 = performance.now();
+
+  try {
+    const res = await fetch("/api/sleeper/sync");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    const hadNewPicks = (data.newPicks || []).length > 0;
+    const turnChanged = draftMeta.yourTurn !== data.meta.yourTurn;
+
+    (data.newPicks || []).forEach((pick) => renderPicksList(pick));
+
+    if (hadNewPicks || turnChanged) {
+      updateFromServer(data);
+    } else {
+      draftMeta = data.meta;
+      updatePickCount();
+      updateNextPicks(data.meta.nextPicks);
+    }
+
+    if (data.meta?.isDraftOver) {
+      sleeperModeActive = false;
+      if (sleeperPollTimeout) clearTimeout(sleeperPollTimeout);
+    }
+  } catch (err) {
+    console.error("Sleeper sync failed:", err);
+  } finally {
+    syncInProgress = false;
+  }
+}
+
 function initSetup() {
   document
     .getElementById("startDraftBtn")
@@ -147,7 +315,11 @@ async function startDraft() {
     const res = await fetch("/api/draft/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...draftConfig, rosterConfig }),
+      body: JSON.stringify({
+        ...draftConfig,
+        rosterConfig,
+        sleeperDraftId: pendingSleeperDraftId,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -164,6 +336,9 @@ async function startDraft() {
     updateFromServer(data);
 
     document.getElementById("setupOverlay").classList.add("hidden");
+    if (pendingSleeperDraftId) {
+      startSleeperPolling();
+    }
   } catch (err) {
     btn.textContent = "Start Draft";
     btn.disabled = false;
@@ -265,16 +440,21 @@ function disableDraftControls() {
 
 function enableDraftControls() {
   document.getElementById("playerSearch").disabled = false;
-  document.getElementById("playerSearch").placeholder = "🔍  Search players...";
-  document.getElementById("logPickBtn").disabled = false;
-  document.getElementById("teamSelect").disabled = false;
+  document.getElementById("playerSearch").placeholder = sleeperModeActive
+    ? "Search players (view only — pick on Sleeper)"
+    : "Search players...";
+
+  if (!sleeperModeActive) {
+    document.getElementById("logPickBtn").disabled = false;
+    document.getElementById("teamSelect").disabled = false;
+  }
   document.getElementById("topTalentToggle").disabled = false;
 }
 
 function renderDraftComplete() {
   const list = document.getElementById("suggestionsList");
   list.innerHTML =
-    '<div class="empty-state">🏁 Draft complete — good luck this season!</div>';
+    '<tr><td colspan="5" class="empty-state">🏁 Draft complete — good luck this season!</td></tr>';
 }
 
 function updateNextPicks(nextPicks) {
@@ -717,6 +897,7 @@ function initTopTalentToggle() {
 
 async function init() {
   await checkServer();
+  initLanding();
   initSetup();
   initPickLogger();
   initSearch();
