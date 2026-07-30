@@ -591,7 +591,7 @@ function renderSearchResults(results) {
     row.dataset.name = p.name;
     row.dataset.team = p.team;
 
-    sosStars = sosStarsDisplay(p.sosRating);
+    const sosStars = sosStarsDisplay(p.sosRating);
 
     row.innerHTML = `
   <td class="col-rank">#${p.rank}</td>
