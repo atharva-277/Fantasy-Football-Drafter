@@ -15,12 +15,13 @@ Username: temp2112
 
 Password: temporary@1
 
+**DO NOT MESS WITH ACCOUNT SETTINGS, THIS RUINS THE FEATURE FOR EVERYONE!**
+
 After signing in, visit https://sleeper.com/draftboards and create a new NFL mock draft
 
 After creating a mock draft the URL at the top will appear similar to this structure: https://sleeper.com/draft/nfl/XXXXXXXXXXXXXXXXXXX
 
 The "X" are numbers and the 19 displayed in the URL are the league ID which you copy over to FFDrafter.
-
 
 ## Features
 ### Start Menu
