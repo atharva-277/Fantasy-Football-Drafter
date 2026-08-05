@@ -3,7 +3,25 @@ A project made to help assist fantasy football users during their draft
 
 <img width="1917" height="927" alt="Screenshot 2026-07-30 151753" src="https://github.com/user-attachments/assets/e2ac9c47-2f7b-499c-8a2c-fd36f33b2984" />
 
+## Instructions
+### Main Link
 Try it out yourself at: https://ffdrafter.atharva02.hackclub.app/
+### Sleeper Usage
+To try out Sleeper draft integration, visit https://sleeper.com/ and sign in with your account
+
+If you don't want to sign-up to create an account, you may use the following temporary details
+
+Username: temp2112
+
+Password: temporary@1
+
+**DO NOT MESS WITH ACCOUNT SETTINGS, THIS RUINS THE FEATURE FOR EVERYONE!**
+
+After signing in, visit https://sleeper.com/draftboards and create a new NFL mock draft
+
+After creating a mock draft the URL at the top will appear similar to this structure: https://sleeper.com/draft/nfl/XXXXXXXXXXXXXXXXXXX
+
+The "X" are numbers and the 19 displayed in the URL are the league ID which you copy over to FFDrafter.
 
 ## Features
 ### Start Menu
