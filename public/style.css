@@ -1487,7 +1487,7 @@ label[for="slotDEF"] {
     padding: 8px;
     gap: 8px;
     height: 100vh;
-    height: 100dvh; /* dynamic viewport height — shrinks when browser chrome is visible */
+    height: 100dvh;
     overflow-y: auto;
     overflow-x: hidden;
   }
