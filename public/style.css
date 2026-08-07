@@ -1484,18 +1484,23 @@ label[for="slotDEF"] {
   }
 
   body {
+    padding: 8px;
+    gap: 8px;
     height: 100vh;
-    height: 100dvh;
+    height: 100dvh; /* dynamic viewport height — shrinks when browser chrome is visible */
     overflow-y: auto;
     overflow-x: hidden;
   }
 
   .draft-layout {
+    display: flex;
+    flex-direction: column;
     overflow: visible;
     min-height: 0;
   }
 
   .panel {
+    display: none;
     overflow: visible;
   }
 
