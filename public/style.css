@@ -1430,3 +1430,92 @@ label[for="slotDEF"] {
   cursor: not-allowed;
   box-shadow: none;
 }
+
+.mobile-panel-toggle {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .topbar-left,
+  .topbar-right {
+    display: none;
+  }
+  .topbar {
+    justify-content: center;
+    padding: 0 12px;
+  }
+  .topbar-center {
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+  }
+  .turn-indicator {
+    padding: 5px 10px;
+  }
+  .turn-number {
+    font-size: 18px;
+  }
+  .turn-label {
+    font-size: 8px;
+  }
+
+  .mobile-panel-toggle {
+    display: flex;
+    background: var(--surface-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+    gap: 2px;
+  }
+  .mobile-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .mobile-toggle-btn.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  body {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .draft-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel {
+    display: none;
+  }
+
+  body:not(.mobile-board-active) .suggestions-panel {
+    display: flex;
+  }
+  body.mobile-board-active .board-panel {
+    display: flex;
+  }
+
+  .setup-card {
+    padding: 20px 18px;
+    width: 92vw;
+  }
+  .setup-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .roster-config-grid.setup-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .round-col {
+    position: static;
+  }
+}

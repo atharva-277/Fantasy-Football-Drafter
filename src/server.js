@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
 
 app.get("/api/status", (req, res) => {
-  res.json({ status: "ok", message: "FF Draft Assistant is running" });
+  res.json({ status: "ok", message: "Active" });
 });
 
 app.post("/api/draft/start", async (req, res) => {

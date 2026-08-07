@@ -559,6 +559,24 @@ function initSearch() {
   });
 }
 
+function initMobileToggle() {
+  const toggle = document.getElementById("mobilePanelToggle");
+  if (!toggle) return;
+
+  toggle.querySelectorAll(".mobile-toggle-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      toggle
+        .querySelectorAll(".mobile-toggle-btn")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.body.classList.toggle(
+        "mobile-board-active",
+        btn.dataset.panel === "board",
+      );
+    });
+  });
+}
+
 async function runSearch(query) {
   try {
     const res = await fetch(`/api/draft/search?q=${encodeURIComponent(query)}`);
@@ -902,6 +920,7 @@ async function init() {
   initPickLogger();
   initSearch();
   initTopTalentToggle();
+  initMobileToggle();
 
   document.getElementById("teamSelect").addEventListener("change", () => {
     fetchAndRenderSuggestions();
