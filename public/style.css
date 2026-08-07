@@ -1484,17 +1484,25 @@ label[for="slotDEF"] {
   }
 
   body {
-    padding: 8px;
-    gap: 8px;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .draft-layout {
-    display: flex;
-    flex-direction: column;
+    overflow: visible;
+    min-height: 0;
   }
 
   .panel {
-    display: none;
+    overflow: visible;
+  }
+
+  .suggestions-table-wrap,
+  .board-grid-wrap {
+    max-height: 60vh;
+    max-height: 60dvh;
   }
 
   body:not(.mobile-board-active) .suggestions-panel {
